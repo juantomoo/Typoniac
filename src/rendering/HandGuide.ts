@@ -11,13 +11,13 @@ export class HandGuide {
 
   public calculateLayout(centerX: number, startY: number): void {
     this.keyPositions.clear();
-    const keyWidth = 44;
-    const keyHeight = 44;
-    const keyGap = 6;
+    const keyWidth = 40;
+    const keyHeight = 40;
+    const keyGap = 5;
 
     // Distribución por hileras estándar
     const rows = ['number', 'top', 'home', 'bottom', 'space'] as const;
-    const rowOffsets = [0, 18, 26, 36, 120];
+    const rowOffsets = [0, 16, 24, 32, 110];
 
     rows.forEach((rowName, rIndex) => {
       const keysInRow = KEYBOARD_LAYOUT.filter(k => k.row === rowName);
@@ -28,7 +28,7 @@ export class HandGuide {
       keysInRow.forEach((k, kIndex) => {
         let w = keyWidth;
         if (k.row === 'space') {
-          w = 220; // Barra espaciadora amplia
+          w = 200; // Barra espaciadora amplia
         }
         const x = rowStartX + (kIndex * (keyWidth + keyGap));
         this.keyPositions.set(k.code, { x, y: rowY, w, h: keyHeight, info: k });
@@ -45,7 +45,6 @@ export class HandGuide {
     targetKey: string | null,
     activeAnchorPulse: number
   ): void {
-    // Si la opacidad es 0% (Modo Ciego), no dibujamos el teclado ni las manos
     if (fadeOpacity <= 0.05) return;
 
     this.calculateLayout(centerX, baseY);
@@ -65,7 +64,7 @@ export class HandGuide {
 
       // Sombra suave
       ctx.shadowColor = isTarget ? pos.info.color : 'rgba(0, 0, 0, 0.04)';
-      ctx.shadowBlur = isTarget ? 14 : 4;
+      ctx.shadowBlur = isTarget ? 16 : 4;
 
       this.roundRect(ctx, pos.x, pos.y, pos.w, pos.h, 8);
       ctx.fill();
@@ -74,7 +73,7 @@ export class HandGuide {
 
       // Anclaje táctil en F y J (Pulso continuo de referencia visual)
       if (isAnchor) {
-        ctx.strokeStyle = pos.info.color;
+        ctx.strokeStyle = isTarget ? '#FFFFFF' : pos.info.color;
         ctx.lineWidth = 2;
         ctx.beginPath();
         const pulseRadius = 5 + Math.sin(activeAnchorPulse * 4) * 2;
@@ -85,15 +84,15 @@ export class HandGuide {
       // Si estamos en Nivel 1 (100%), mostramos las letras. En Nivel 2 (50%), solo los bloques cromáticos
       if (fadeOpacity > 0.6) {
         ctx.fillStyle = isTarget ? '#FFFFFF' : '#1E293B';
-        ctx.font = '600 15px "Outfit", system-ui, sans-serif';
+        ctx.font = '600 14px "Outfit", system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(pos.info.display, pos.x + pos.w / 2, pos.y + pos.h / 2);
       }
     }
 
-    // 2. Render de Silueta Holográfica de Manos Flotantes
-    this.renderHolographicHands(ctx, centerX, baseY + 180, targetFinger, fadeOpacity);
+    // 2. Render de Silueta Holográfica de Manos Flotantes (Totalmente despejadas bajo la barra espaciadora)
+    this.renderHolographicHands(ctx, centerX, baseY + 295, targetFinger, fadeOpacity);
 
     ctx.restore();
   }
@@ -105,21 +104,21 @@ export class HandGuide {
     targetFinger: string | null,
     fadeOpacity: number
   ): void {
-    const handSpread = 160;
+    const handSpread = 150;
     const fingersLeft: { name: FingerName; x: number; y: number; r: number }[] = [
-      { name: 'left-pinky',  x: centerX - handSpread - 90, y: handsY - 35, r: 14 },
-      { name: 'left-ring',   x: centerX - handSpread - 55, y: handsY - 55, r: 15 },
-      { name: 'left-middle', x: centerX - handSpread - 20, y: handsY - 65, r: 16 },
-      { name: 'left-index',  x: centerX - handSpread + 15, y: handsY - 45, r: 15 },
-      { name: 'thumbs',      x: centerX - handSpread + 45, y: handsY + 5,  r: 16 }
+      { name: 'left-pinky',  x: centerX - handSpread - 85, y: handsY - 30, r: 13 },
+      { name: 'left-ring',   x: centerX - handSpread - 50, y: handsY - 50, r: 14 },
+      { name: 'left-middle', x: centerX - handSpread - 15, y: handsY - 60, r: 15 },
+      { name: 'left-index',  x: centerX - handSpread + 20, y: handsY - 40, r: 14 },
+      { name: 'thumbs',      x: centerX - handSpread + 50, y: handsY + 10,  r: 15 }
     ];
 
     const fingersRight: { name: FingerName; x: number; y: number; r: number }[] = [
-      { name: 'thumbs',       x: centerX + handSpread - 45, y: handsY + 5,  r: 16 },
-      { name: 'right-index',  x: centerX + handSpread - 15, y: handsY - 45, r: 15 },
-      { name: 'right-middle', x: centerX + handSpread + 20, y: handsY - 65, r: 16 },
-      { name: 'right-ring',   x: centerX + handSpread + 55, y: handsY - 55, r: 15 },
-      { name: 'right-pinky',  x: centerX + handSpread + 90, y: handsY - 35, r: 14 }
+      { name: 'thumbs',       x: centerX + handSpread - 50, y: handsY + 10,  r: 15 },
+      { name: 'right-index',  x: centerX + handSpread - 20, y: handsY - 40, r: 14 },
+      { name: 'right-middle', x: centerX + handSpread + 15, y: handsY - 60, r: 15 },
+      { name: 'right-ring',   x: centerX + handSpread + 50, y: handsY - 50, r: 14 },
+      { name: 'right-pinky',  x: centerX + handSpread + 85, y: handsY - 30, r: 13 }
     ];
 
     // Siluetas de palmas translúcidas
@@ -129,12 +128,12 @@ export class HandGuide {
     ctx.lineWidth = 2;
 
     // Palma Izquierda
-    this.roundRect(ctx, centerX - handSpread - 80, handsY - 10, 110, 75, 24);
+    this.roundRect(ctx, centerX - handSpread - 75, handsY - 5, 105, 70, 22);
     ctx.fill();
     ctx.stroke();
 
     // Palma Derecha
-    this.roundRect(ctx, centerX + handSpread - 30, handsY - 10, 110, 75, 24);
+    this.roundRect(ctx, centerX + handSpread - 30, handsY - 5, 105, 70, 22);
     ctx.fill();
     ctx.stroke();
 

@@ -1,6 +1,7 @@
 /**
  * Typoniac — OSU! Light Edition
- * Punto de entrada principal y orquestador del ciclo de juego rítmico.
+ * Orquestador principal con Welcome Splash, Modo Tutorial, Curva de Inicio Suave,
+ * HUD Glassmorphic y Debug Tester Permanente con Simulador de Bot.
  */
 
 import { AudioEngine } from './core/AudioEngine';
@@ -12,6 +13,9 @@ import { CanvasRenderer } from './rendering/CanvasRenderer';
 import { HUD } from './ui/HUD';
 import { SongSelect } from './ui/SongSelect';
 import { PauseModal } from './ui/PauseModal';
+import { WelcomeSplash } from './ui/WelcomeSplash';
+import { TutorialModal } from './ui/TutorialModal';
+import { DebugTester } from './ui/DebugTester';
 import { CURATED_TRACKS, BeatmapData } from './config/songs';
 import { THEME } from './config/theme';
 
@@ -27,8 +31,12 @@ class TyponiacGame {
   private hud: HUD;
   private songSelect: SongSelect;
   private pauseModal: PauseModal;
+  private welcomeSplash: WelcomeSplash;
+  private tutorialModal: TutorialModal;
+  private debugTester: DebugTester;
 
   private isRunning: boolean = false;
+  private isTutorialActive: boolean = false;
 
   constructor() {
     this.canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -37,6 +45,7 @@ class TyponiacGame {
     this.rhythmEngine = new RhythmEngine();
     this.adaptiveLogic = new AdaptiveLogic();
     this.gameState = new GameState();
+    this.debugTester = new DebugTester();
 
     // Modales y HUD
     this.pauseModal = new PauseModal(() => this.resumeFromHygienePause());
@@ -49,24 +58,50 @@ class TyponiacGame {
 
     this.songSelect = new SongSelect((track: BeatmapData) => this.loadAndStartTrack(track));
 
+    this.tutorialModal = new TutorialModal(
+      () => {
+        this.isTutorialActive = false;
+        this.loadAndStartTrack(CURATED_TRACKS[0]);
+      },
+      (step) => {
+        // Al pulsar tecla correcta en tutorial, reproducir nota armónica
+        const col = step.targetKey === 'f' ? 3 : (step.targetKey === 'j' ? 6 : 4);
+        this.audioEngine.playKeyChime(col, true);
+      }
+    );
+
+    this.welcomeSplash = new WelcomeSplash({
+      onStartTutorial: () => {
+        this.audioEngine.init();
+        this.isTutorialActive = true;
+        this.tutorialModal.start();
+      },
+      onSelectSong: (track: BeatmapData) => {
+        this.audioEngine.init();
+        this.loadAndStartTrack(track);
+      },
+      onOpenSongCatalog: () => {
+        this.audioEngine.init();
+        this.songSelect.show();
+      }
+    });
+
     this.setupListeners();
   }
 
-  public async start(): Promise<void> {
-    // Iniciar con la primera canción de la Fase Cognitiva (C418 Subwoofer Lullaby a 70 BPM)
-    const initialTrack = CURATED_TRACKS[0];
-    await this.loadAndStartTrack(initialTrack);
-
+  public init(): void {
+    // Mostrar pantalla de bienvenida al inicio
+    this.welcomeSplash.show();
     this.isRunning = true;
-    this.hygieneTimer.start();
     requestAnimationFrame(() => this.gameLoop());
   }
 
-  private async loadAndStartTrack(track: BeatmapData): Promise<void> {
+  public async loadAndStartTrack(track: BeatmapData): Promise<void> {
+    this.audioEngine.init();
     this.audioEngine.stop();
     this.gameState.reset(track);
 
-    // Intentar cargar la pista descargada de yt-dlp (o activar generador procedural de síntesis)
+    this.hygieneTimer.start();
     await this.audioEngine.loadAudio(track.audioUrl);
     this.audioEngine.play(0, track.bpm);
   }
@@ -76,21 +111,25 @@ class TyponiacGame {
       this.renderer.handleResize();
     });
 
-    // Escucha de teclado físico sin latencia
     window.addEventListener('keydown', (e) => {
-      // Prevenir scroll en barra espaciadora
       if (e.code === 'Space') {
         e.preventDefault();
       }
+      if (e.repeat) return;
 
-      if (e.repeat) return; // Evitar repetición automática del sistema operativo
+      // Si el tutorial está activo, delegar la tecla
+      if (this.isTutorialActive) {
+        if (this.tutorialModal.handleKeyPress(e.key)) {
+          return;
+        }
+      }
 
       this.handleKeystroke(e.key, e.code);
     });
   }
 
   private handleKeystroke(key: string, code: string): void {
-    if (!this.isRunning) return;
+    if (!this.isRunning || !this.gameState.currentTrack) return;
 
     const masterTime = this.audioEngine.getMasterTime();
     const hitResult = this.rhythmEngine.evaluateHit(
@@ -101,6 +140,9 @@ class TyponiacGame {
     );
 
     if (!hitResult) return;
+
+    // Registrar en Debug Tester permanente
+    this.debugTester.recordHit(hitResult);
 
     const colIndex = hitResult.keyInfo ? hitResult.keyInfo.colIndex : 4;
     const isPerfect = hitResult.judgment === 'PERFECT';
@@ -128,7 +170,7 @@ class TyponiacGame {
 
     this.renderer.showJudgment(hitResult.judgment, judgmentColor, hitLineX, hitLineY);
 
-    // 4. Remover nota juzgada de las notas activas
+    // 4. Remover nota juzgada
     if (hitResult.noteId !== 'none') {
       const idx = this.gameState.activeNotes.findIndex(n => n.id === hitResult.noteId);
       if (idx !== -1) {
@@ -140,25 +182,43 @@ class TyponiacGame {
   private gameLoop(): void {
     if (!this.isRunning) return;
 
-
     const masterTime = this.audioEngine.getMasterTime();
 
-    // Limpiar notas que ya pasaron de la ventana temporal (> 0.08s tarde)
-    for (let i = this.gameState.activeNotes.length - 1; i >= 0; i--) {
-      const note = this.gameState.activeNotes[i];
-      if (masterTime - note.time > 0.08) {
-        this.gameState.registerHit('MISS');
-        this.audioEngine.playSoftMiss();
-        this.gameState.activeNotes.splice(i, 1);
+    // 1. Modo Bot / Autoplay para pruebas y testing automatizado
+    if (this.debugTester.isBotEnabled && this.gameState.currentTrack) {
+      const botKey = this.debugTester.getBotAction(this.gameState.activeNotes, masterTime);
+      if (botKey) {
+        this.handleKeystroke(botKey, botKey === ' ' ? 'Space' : `Key${botKey.toUpperCase()}`);
       }
     }
 
-    // Render de Canvas a 120 FPS
+    // 2. Limpiar notas pasadas de tiempo (> 0.08s tarde)
+    if (this.gameState.currentTrack) {
+      for (let i = this.gameState.activeNotes.length - 1; i >= 0; i--) {
+        const note = this.gameState.activeNotes[i];
+        if (masterTime - note.time > 0.08) {
+          this.gameState.registerHit('MISS');
+          this.audioEngine.playSoftMiss();
+          this.debugTester.recordHit({
+            noteId: note.id,
+            char: note.char,
+            judgment: 'MISS',
+            deltaMs: (masterTime - note.time) * 1000,
+            expectedFinger: 'tiempo agotado',
+            isBiomechanicallyValid: false
+          });
+          this.gameState.activeNotes.splice(i, 1);
+        }
+      }
+    }
+
+    // 3. Render de Canvas a 120 FPS
     this.renderer.render(this.gameState, masterTime);
 
-    // Actualización de HUD
+    // 4. Actualización de HUD y Debug Tester
     const stdDev = this.rhythmEngine.getLatencyStdDev();
     this.hud.update(this.gameState, this.hygieneTimer, stdDev);
+    this.debugTester.update(this.audioEngine, this.rhythmEngine, this.gameState);
 
     requestAnimationFrame(() => this.gameLoop());
   }
@@ -175,8 +235,8 @@ class TyponiacGame {
   }
 }
 
-// Iniciar aplicación al cargar el DOM
+// Iniciar aplicación
 window.addEventListener('DOMContentLoaded', () => {
   const game = new TyponiacGame();
-  game.start().catch(console.error);
+  game.init();
 });

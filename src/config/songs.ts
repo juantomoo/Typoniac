@@ -1,6 +1,6 @@
 /**
  * Catálogo de Canciones y Beatmaps Neuropedagógicos
- * Organizados por niveles de Fitts & Posner y rangos etarios.
+ * Curva de aprendizaje gradual adaptada por estadios motores de Fitts & Posner.
  */
 
 export interface NoteEvent {
@@ -25,57 +25,76 @@ export interface BeatmapData {
   notes: NoteEvent[];
 }
 
-// Generador de secuencias rítmicas pedagógicas por fase
-function generatePedagogicalNotes(bpm: number, duration: number, level: 1 | 2 | 3): NoteEvent[] {
+/**
+ * Generador Ultra-Gradual para Fase Cognitiva (5-7 años)
+ * 5 segundos de preparación auditiva/postural, espaciado amplio inicial y chunking progresivo.
+ */
+function generateLevel1GentleNotes(bpm: number, duration: number): NoteEvent[] {
   const notes: NoteEvent[] = [];
-  const beatInterval = 60 / bpm;
-  let currentTime = 2.0; // 2 segundos de preparación visual
-  let noteIndex = 0;
+  const beat = 60 / bpm; // ~0.857s a 70 BPM
+  let id = 0;
 
-  // Pools de caracteres según la etapa de Fitts & Posner
-  // Nivel 1: Hilera Guía central y sílabas sencillas
-  // Nivel 2: Incorporación de hileras superior e inferior, mayúsculas y palabras
-  // Nivel 3: Teclado completo, ráfagas rítmicas, números y puntuación
+  // 1. Fase de Entrada Suave (5s a 15s): Notas individuales espaciadas (F y J únicamente)
+  notes.push({ id: `n_${id++}`, char: 'f', time: 5.0, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: 'j', time: 8.0, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: 'f', time: 11.0, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: 'j', time: 14.0, type: 'circle' });
 
-  let cadenceDivisor = 1; // 1 = cada tiempo (negra), 0.5 = corchea
+  // 2. Fase de Doble Pulso (16s a 25s): Dos toques por mano
+  notes.push({ id: `n_${id++}`, char: 'f', time: 17.5, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: 'f', time: 19.5, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: 'j', time: 22.0, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: 'j', time: 24.0, type: 'circle' });
 
-  if (level === 1) {
-    cadenceDivisor = 1; // 1 pulsación por compás/tiempo
-  } else if (level === 2) {
-    cadenceDivisor = 0.5; // Mayor densidad rítmica
-  } else {
-    cadenceDivisor = 0.5;
+  // 3. Fase de Alternancia y Espacio (26s a 35s)
+  notes.push({ id: `n_${id++}`, char: 'f', time: 27.0, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: 'j', time: 29.0, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: ' ', time: 31.0, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: 'j', time: 33.0, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: 'f', time: 35.0, type: 'circle' });
+
+  // 4. Incorporación de Dedos Mayores D y K (37s a 50s)
+  notes.push({ id: `n_${id++}`, char: 'd', time: 38.0, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: 'f', time: 40.0, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: 'k', time: 42.5, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: 'j', time: 44.5, type: 'circle' });
+  notes.push({ id: `n_${id++}`, char: ' ', time: 46.5, type: 'circle' });
+
+  // 5. Sílabas Simples de Dos Letras al Compás (50s en adelante)
+  const syllables = [
+    { text: 'fa', start: 50.0 },
+    { text: 'ja', start: 54.0 },
+    { text: 'da', start: 58.0 },
+    { text: 'la', start: 62.0 },
+    { text: 'sol', start: 66.0 }
+  ];
+
+  for (const s of syllables) {
+    if (s.start + 3 > duration) break;
+    let t = s.start;
+    for (const ch of s.text) {
+      notes.push({ id: `n_${id++}`, char: ch, time: t, type: 'circle' });
+      t += beat;
+    }
+    // Pulso en espacio
+    notes.push({ id: `n_${id++}`, char: ' ', time: t + beat, type: 'circle' });
   }
 
-  // Patrones silábicos y de bigramas comunes para consolidar memoria procedimental
-  const syllablesL1 = ['fa', 'da', 'la', 'ja', 'ka', 'sa', 'da', 'fa', 'la'];
+  return notes;
+}
+
+// Generador de secuencias rítmicas para niveles 2 y 3
+function generateAdvancedNotes(bpm: number, duration: number, level: 2 | 3): NoteEvent[] {
+  const notes: NoteEvent[] = [];
+  const beatInterval = 60 / bpm;
+  let currentTime = 4.0;
+  let noteIndex = 0;
+
   const wordsL2 = ['de', 'en', 'el', 'la', 'un', 'se', 'por', 'con', 'para', 'casa', 'sol', 'luz'];
   const sentencesL3 = ['escribe', 'rapido', 'ritmo', 'musica', 'juego', 'teclas', 'sonido', 'dedos'];
 
   while (currentTime < duration - 2.0) {
-    
-    if (level === 1) {
-      // Alternancia simétrica bimanual para niños de 5-7 años
-      const syl = syllablesL1[noteIndex % syllablesL1.length];
-      for (const ch of syl) {
-        notes.push({
-          id: `note_${noteIndex++}`,
-          char: ch,
-          time: currentTime,
-          type: 'circle'
-        });
-        currentTime += beatInterval;
-      }
-      // Pulgar en espacio para descanso rítmico
-      notes.push({
-        id: `note_${noteIndex++}`,
-        char: ' ',
-        time: currentTime,
-        type: 'circle'
-      });
-      currentTime += beatInterval * 1.5;
-    } else if (level === 2) {
-      // Bigramas e hileras combinadas
+    if (level === 2) {
       const w = wordsL2[noteIndex % wordsL2.length];
       for (const ch of w) {
         notes.push({
@@ -84,7 +103,7 @@ function generatePedagogicalNotes(bpm: number, duration: number, level: 1 | 2 | 
           time: currentTime,
           type: 'circle'
         });
-        currentTime += beatInterval * cadenceDivisor;
+        currentTime += beatInterval;
       }
       notes.push({
         id: `note_${noteIndex++}`,
@@ -92,9 +111,8 @@ function generatePedagogicalNotes(bpm: number, duration: number, level: 1 | 2 | 
         time: currentTime,
         type: 'circle'
       });
-      currentTime += beatInterval;
+      currentTime += beatInterval * 1.5;
     } else {
-      // Ráfagas y fluidez para 9-10 años
       const w = sentencesL3[noteIndex % sentencesL3.length];
       for (let i = 0; i < w.length; i++) {
         const isSlider = (i === w.length - 1 && noteIndex % 3 === 0);
@@ -105,7 +123,7 @@ function generatePedagogicalNotes(bpm: number, duration: number, level: 1 | 2 | 
           duration: isSlider ? beatInterval * 2 : undefined,
           type: isSlider ? 'slider' : 'circle'
         });
-        currentTime += beatInterval * (isSlider ? 2.5 : cadenceDivisor);
+        currentTime += beatInterval * (isSlider ? 2.5 : 0.5);
       }
       notes.push({
         id: `note_${noteIndex++}`,
@@ -121,7 +139,7 @@ function generatePedagogicalNotes(bpm: number, duration: number, level: 1 | 2 | 
 }
 
 export const CURATED_TRACKS: BeatmapData[] = [
-  // FASE COGNITIVA (5-7 AÑOS)
+  // FASE COGNITIVA (5-7 AÑOS) — Curva Suave
   {
     id: 'c418_subwoofer',
     title: 'Subwoofer Lullaby',
@@ -129,10 +147,10 @@ export const CURATED_TRACKS: BeatmapData[] = [
     bpm: 70,
     level: 1,
     age: '5-7 años',
-    description: 'Fase Cognitiva - Hilera Guía y anclajes F y J a 70 BPM',
+    description: 'Fase Cognitiva - Curva ultra-lenta, anclajes F y J a 70 BPM',
     audioUrl: './audio/c418_subwoofer.mp3',
     offset: 0.2,
-    notes: generatePedagogicalNotes(70, 75, 1)
+    notes: generateLevel1GentleNotes(70, 75)
   },
   {
     id: 'mario_dire_docks',
@@ -144,7 +162,7 @@ export const CURATED_TRACKS: BeatmapData[] = [
     description: 'Fase Cognitiva - Arpegios de relajación sensorial a 80 BPM',
     audioUrl: './audio/mario_dire_docks.mp3',
     offset: 0.1,
-    notes: generatePedagogicalNotes(80, 75, 1)
+    notes: generateLevel1GentleNotes(80, 75)
   },
 
   // FASE ASOCIATIVA (7-9 AÑOS)
@@ -158,7 +176,7 @@ export const CURATED_TRACKS: BeatmapData[] = [
     description: 'Fase Asociativa - Hilera superior y coordinación bimanual a 90 BPM',
     audioUrl: './audio/totoro_theme.mp3',
     offset: 0.15,
-    notes: generatePedagogicalNotes(90, 75, 2)
+    notes: generateAdvancedNotes(90, 75, 2)
   },
   {
     id: 'viva_la_vida',
@@ -170,7 +188,7 @@ export const CURATED_TRACKS: BeatmapData[] = [
     description: 'Fase Asociativa - Hilera inferior y fluidez rítmica a 98 BPM',
     audioUrl: './audio/viva_la_vida.mp3',
     offset: 0.2,
-    notes: generatePedagogicalNotes(98, 75, 2)
+    notes: generateAdvancedNotes(98, 75, 2)
   },
 
   // FASE AUTÓNOMA (9-10 AÑOS)
@@ -184,7 +202,7 @@ export const CURATED_TRACKS: BeatmapData[] = [
     description: 'Fase Autónoma - Mecanografía a ciegas y precisión métrica a 110 BPM',
     audioUrl: './audio/undertale_once.mp3',
     offset: 0.1,
-    notes: generatePedagogicalNotes(110, 75, 3)
+    notes: generateAdvancedNotes(110, 75, 3)
   },
   {
     id: 'harder_better',
@@ -196,6 +214,6 @@ export const CURATED_TRACKS: BeatmapData[] = [
     description: 'Fase Autónoma - Ráfagas rítmicas de n-gramas a 123 BPM',
     audioUrl: './audio/harder_better.mp3',
     offset: 0.25,
-    notes: generatePedagogicalNotes(123, 75, 3)
+    notes: generateAdvancedNotes(123, 75, 3)
   }
 ];

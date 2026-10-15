@@ -1,7 +1,7 @@
 /**
  * Renderizador Principal de Canvas a 120 FPS
- * Orquesta fondos anti-estrés, línea de ejecución rítmica, notas, manos holográficas
- * y los pulsos cromáticos periféricos en Modo Ciego.
+ * Orquesta fondos anti-estrés, línea de ejecución rítmica, notas, manos holográficas,
+ * aviso visual de preparación para niños y los pulsos cromáticos periféricos en Modo Ciego.
  */
 
 import { THEME } from '../config/theme';
@@ -66,10 +66,16 @@ export class CanvasRenderer {
     }
 
     const centerX = w / 2;
-    const hitLineY = h * 0.42; // Línea de ejecución rítmica
-    const keyboardBaseY = h * 0.62;
+    // Espaciado ergonómico optimizado
+    const hitLineY = Math.max(220, h * 0.36);
+    const keyboardBaseY = Math.max(340, h * 0.52);
 
-    // 3. Línea de Impacto Rítmico (Beatline)
+    // 3. Aviso Visual de Preparación para Niños (Cuenta Regresiva de Entrada)
+    if (masterTime < 4.8 && gameState.currentTrack) {
+      this.renderPrepBanner(ctx, centerX, hitLineY - 70, masterTime);
+    }
+
+    // 4. Línea de Impacto Rítmico (Beatline)
     ctx.save();
     ctx.strokeStyle = 'rgba(203, 213, 225, 0.7)';
     ctx.lineWidth = 3;
@@ -91,7 +97,7 @@ export class CanvasRenderer {
     }
     ctx.restore();
 
-    // 4. Determinar la Próxima Nota para iluminar el dedo en tiempo real
+    // 5. Determinar la Próxima Nota para iluminar el dedo en tiempo real
     const upcoming = gameState.activeNotes.find(n => n.time >= masterTime && n.time <= masterTime + 1.2);
     let targetFinger: string | null = null;
     let targetKey: string | null = null;
@@ -106,10 +112,10 @@ export class CanvasRenderer {
       }
     }
 
-    // 5. Renderizar Notas Rítmicas OSU! Light
+    // 6. Renderizar Notas Rítmicas OSU! Light
     this.noteRenderer.render(ctx, gameState.activeNotes, masterTime, centerX, hitLineY, 900);
 
-    // 6. Renderizar Manos Holográficas y Teclado Virtual con Atenuación Visual
+    // 7. Renderizar Manos Holográficas y Teclado Virtual con Atenuación Visual
     this.handGuide.render(
       ctx,
       centerX,
@@ -120,7 +126,7 @@ export class CanvasRenderer {
       performance.now() / 1000
     );
 
-    // 7. Texto Flotante de Juicio (PERFECT / GREAT / MISS)
+    // 8. Texto Flotante de Juicio (PERFECT / GREAT / MISS)
     if (this.floatingJudgment) {
       ctx.save();
       ctx.fillStyle = this.floatingJudgment.color;
@@ -136,6 +142,44 @@ export class CanvasRenderer {
         this.floatingJudgment = null;
       }
     }
+  }
+
+  private renderPrepBanner(ctx: CanvasRenderingContext2D, cx: number, cy: number, time: number): void {
+    ctx.save();
+    ctx.textAlign = 'center';
+
+    let countText = '3';
+    if (time > 1.5 && time <= 3.0) countText = '2';
+    if (time > 3.0 && time <= 4.2) countText = '1';
+    if (time > 4.2) countText = '¡A TOCAR!';
+
+    // Fondo pastilla translúcida
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+    ctx.strokeStyle = THEME.primaryCyan;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = 'rgba(0, 194, 224, 0.2)';
+    ctx.shadowBlur = 16;
+
+    const w = 460;
+    const h = 75;
+    const x = cx - w / 2;
+    const y = cy - h / 2;
+
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 20);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = '#64748B';
+    ctx.font = '700 12px "Outfit", system-ui, sans-serif';
+    ctx.fillText('COLOCA TUS DEDOS ÍNDICES EN F Y J', cx, cy - 10);
+
+    ctx.fillStyle = THEME.primaryCyan;
+    ctx.font = '900 24px "Outfit", system-ui, sans-serif';
+    ctx.fillText(countText, cx, cy + 20);
+
+    ctx.restore();
   }
 
   public showJudgment(text: string, color: string, hitLineX: number, hitLineY: number): void {
