@@ -1,9 +1,10 @@
 /**
  * Estado Reactivo del Juego y Métricas de Rendimiento Mecanográfico
- * Fórmulas estándar internacionales de WPM y Precisión.
+ * Soporta juicios PERFECT, GREAT, GOOD y MISS sin penalizaciones estresantes.
  */
 
 import { BeatmapData, NoteEvent } from '../config/songs';
+import { JudgmentType } from '../core/RhythmEngine';
 
 export type FadeMode = 1.0 | 0.5 | 0.0;
 
@@ -18,6 +19,7 @@ export class GameState {
 
   public perfectCount: number = 0;
   public greatCount: number = 0;
+  public goodCount: number = 0;
   public missCount: number = 0;
 
   public totalKeystrokes: number = 0;
@@ -25,14 +27,10 @@ export class GameState {
   public uniqueErrors: number = 0;
   public startTime: number = 0;
 
-  // Sistema de Atenuación Visual Progresiva (1.0 = 100%, 0.5 = 50%, 0.0 = Modo Ciego)
   public visualFadeOpacity: FadeMode = 1.0;
-
-  // Pulso cromático periférico ante errores en Modo Ciego
   public lastErrorFingerColor: string | null = null;
   public lastErrorTimestamp: number = 0;
 
-  // Dedo actualmente iluminado para la siguiente nota
   public targetFinger: string | null = null;
   public targetFingerColor: string | null = null;
 
@@ -47,6 +45,7 @@ export class GameState {
 
     this.perfectCount = 0;
     this.greatCount = 0;
+    this.goodCount = 0;
     this.missCount = 0;
 
     this.totalKeystrokes = 0;
@@ -60,7 +59,7 @@ export class GameState {
     this.targetFingerColor = null;
   }
 
-  public registerHit(judgment: 'PERFECT' | 'GREAT' | 'MISS', errorFingerColor?: string): void {
+  public registerHit(judgment: JudgmentType, errorFingerColor?: string): void {
     this.totalKeystrokes++;
 
     if (judgment === 'PERFECT') {
@@ -72,11 +71,16 @@ export class GameState {
       this.greatCount++;
       this.correctKeystrokes++;
       this.combo++;
-      this.score += 100 + Math.min(this.combo * 5, 200);
+      this.score += 150 + Math.min(this.combo * 5, 200);
+    } else if (judgment === 'GOOD') {
+      this.goodCount++;
+      this.correctKeystrokes++;
+      this.combo++; // El nivel GOOD mantiene el combo vivo para motivar al niño
+      this.score += 80;
     } else {
       this.missCount++;
       this.uniqueErrors++;
-      this.combo = 0; // Ruptura del combo rítmico
+      this.combo = 0;
 
       if (errorFingerColor) {
         this.lastErrorFingerColor = errorFingerColor;

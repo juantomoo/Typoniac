@@ -1,6 +1,6 @@
 /**
  * Renderizador de Notas Rítmicas "OSU! Light Edition"
- * Círculos de impacto cromáticos, approach rings concéntricos y pistas de flujo.
+ * Soporta velocidad de aproximación elástica y configurable (approachTime: 1.4s a 3.0s).
  */
 
 import { NoteEvent } from '../config/songs';
@@ -19,7 +19,6 @@ export interface BurstParticle {
 
 export class NoteRenderer {
   private particles: BurstParticle[] = [];
-  private readonly APPROACH_TIME = 1.2; // Segundos antes del impacto donde la nota aparece
 
   public render(
     ctx: CanvasRenderingContext2D,
@@ -27,22 +26,23 @@ export class NoteRenderer {
     currentTime: number,
     hitLineX: number,
     hitLineY: number,
-    laneWidth: number
+    laneWidth: number,
+    approachTime: number = 2.5 // 2.5 segundos por defecto para niños y principiantes
   ): void {
     const visibleNotes = activeNotes.filter(
-      n => n.time >= currentTime - 0.1 && n.time <= currentTime + this.APPROACH_TIME
+      n => n.time >= currentTime - 0.1 && n.time <= currentTime + approachTime
     );
 
     // 1. Render de pistas de flujo (Flow tracks / sliders)
     for (const note of visibleNotes) {
       if (note.type === 'slider' && note.duration) {
-        this.renderSliderTrack(ctx, note, currentTime, hitLineX, hitLineY, laneWidth);
+        this.renderSliderTrack(ctx, note, currentTime, hitLineX, hitLineY, laneWidth, approachTime);
       }
     }
 
     // 2. Render de círculos de impacto y approach rings
     for (const note of visibleNotes) {
-      this.renderImpactCircle(ctx, note, currentTime, hitLineX, hitLineY, laneWidth);
+      this.renderImpactCircle(ctx, note, currentTime, hitLineX, hitLineY, laneWidth, approachTime);
     }
 
     // 3. Partículas de impacto
@@ -55,17 +55,16 @@ export class NoteRenderer {
     currentTime: number,
     hitLineX: number,
     hitLineY: number,
-    laneWidth: number
+    laneWidth: number,
+    approachTime: number
   ): void {
-    const timeDelta = note.time - currentTime; // > 0 en el futuro, = 0 en el hit
-    const progress = 1 - (timeDelta / this.APPROACH_TIME); // 0 cuando aparece, 1 en el hit
+    const timeDelta = note.time - currentTime;
+    const progress = 1 - (timeDelta / approachTime);
     
-    // Mapeo horizontal de carril según la columna biomecánica
     const keyInfo = KEY_MAP_BY_CHAR[note.char.toLowerCase()];
     const colIndex = keyInfo ? keyInfo.colIndex : 4;
     const noteX = hitLineX - 450 + (colIndex * (laneWidth / 10)) + 40;
     
-    // Movimiento vertical descendente hacia la línea de impacto
     const startY = hitLineY - 260;
     const currentY = startY + (progress * 260);
 
@@ -84,7 +83,7 @@ export class NoteRenderer {
 
     // Aro de aproximación concéntrico (Approach Ring estilo OSU!)
     if (timeDelta > 0) {
-      const ringScale = 1 + (timeDelta / this.APPROACH_TIME) * 1.8;
+      const ringScale = 1 + (timeDelta / approachTime) * 1.8;
       ctx.strokeStyle = color;
       ctx.lineWidth = 3;
       ctx.globalAlpha = Math.min(1, progress * 1.5);
@@ -98,7 +97,6 @@ export class NoteRenderer {
     ctx.shadowColor = color;
     ctx.shadowBlur = 12;
 
-    // Fondo blanco cristalino con borde cromático grueso
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
     ctx.arc(noteX, currentY, radius, 0, Math.PI * 2);
@@ -126,15 +124,16 @@ export class NoteRenderer {
     currentTime: number,
     hitLineX: number,
     hitLineY: number,
-    laneWidth: number
+    laneWidth: number,
+    approachTime: number
   ): void {
     const keyInfo = KEY_MAP_BY_CHAR[note.char.toLowerCase()];
     const colIndex = keyInfo ? keyInfo.colIndex : 4;
     const noteX = hitLineX - 450 + (colIndex * (laneWidth / 10)) + 40;
     const color = keyInfo ? keyInfo.color : THEME.primaryCyan;
 
-    const startProgress = 1 - ((note.time - currentTime) / this.APPROACH_TIME);
-    const endProgress = 1 - (((note.time + (note.duration || 0)) - currentTime) / this.APPROACH_TIME);
+    const startProgress = 1 - ((note.time - currentTime) / approachTime);
+    const endProgress = 1 - (((note.time + (note.duration || 0)) - currentTime) / approachTime);
 
     const startY = (hitLineY - 260) + (startProgress * 260);
     const endY = (hitLineY - 260) + (endProgress * 260);

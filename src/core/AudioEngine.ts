@@ -101,6 +101,19 @@ export class AudioEngine {
     }
   }
 
+
+  public setMusicVolume(vol: number): void {
+    if (this.musicGain && this.ctx) {
+      this.musicGain.gain.setValueAtTime(Math.max(0, Math.min(vol, 1)), this.ctx.currentTime);
+    }
+  }
+
+  public setSfxVolume(vol: number): void {
+    if (this.sfxGain && this.ctx) {
+      this.sfxGain.gain.setValueAtTime(Math.max(0, Math.min(vol, 1)), this.ctx.currentTime);
+    }
+  }
+
   public stop(): void {
     if (this.musicSource) {
       try {

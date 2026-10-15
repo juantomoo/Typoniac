@@ -1,7 +1,7 @@
 /**
  * Typoniac — OSU! Light Edition
- * Orquestador principal con Welcome Splash, Modo Tutorial, Curva de Inicio Suave,
- * HUD Glassmorphic y Debug Tester Permanente con Simulador de Bot.
+ * Orquestador principal con Welcome Splash, Modo Tutorial, Botón de Inicio,
+ * Modal de Calibración de Dificultad, Tolerancia Rítmica Benévola y Debug Tester.
  */
 
 import { AudioEngine } from './core/AudioEngine';
@@ -16,6 +16,8 @@ import { PauseModal } from './ui/PauseModal';
 import { WelcomeSplash } from './ui/WelcomeSplash';
 import { TutorialModal } from './ui/TutorialModal';
 import { DebugTester } from './ui/DebugTester';
+import { SettingsModal } from './ui/SettingsModal';
+import { DifficultyManager, DifficultySettings } from './config/difficulty';
 import { CURATED_TRACKS, BeatmapData } from './config/songs';
 import { THEME } from './config/theme';
 
@@ -27,6 +29,7 @@ class TyponiacGame {
   private adaptiveLogic: AdaptiveLogic;
   private hygieneTimer: HygieneTimer;
   private gameState: GameState;
+  private difficultyManager: DifficultyManager;
 
   private hud: HUD;
   private songSelect: SongSelect;
@@ -34,6 +37,7 @@ class TyponiacGame {
   private welcomeSplash: WelcomeSplash;
   private tutorialModal: TutorialModal;
   private debugTester: DebugTester;
+  private settingsModal: SettingsModal;
 
   private isRunning: boolean = false;
   private isTutorialActive: boolean = false;
@@ -46,17 +50,31 @@ class TyponiacGame {
     this.adaptiveLogic = new AdaptiveLogic();
     this.gameState = new GameState();
     this.debugTester = new DebugTester();
+    this.difficultyManager = new DifficultyManager();
 
     // Modales y HUD
     this.pauseModal = new PauseModal(() => this.resumeFromHygienePause());
     this.hygieneTimer = new HygieneTimer(() => this.triggerHygienePause());
 
-    this.hud = new HUD(
-      (mode: FadeMode) => this.gameState.setFadeMode(mode),
-      () => this.songSelect.show()
-    );
+    this.hud = new HUD({
+      onSelectFadeMode: (mode: FadeMode) => this.gameState.setFadeMode(mode),
+      onOpenSongSelect: () => this.songSelect.show(),
+      onReturnToHome: () => this.returnToHome(),
+      onOpenSettings: () => this.settingsModal.show()
+    });
 
     this.songSelect = new SongSelect((track: BeatmapData) => this.loadAndStartTrack(track));
+
+    this.settingsModal = new SettingsModal(this.difficultyManager, {
+      onSettingsChanged: (settings: DifficultySettings) => {
+        this.audioEngine.setMusicVolume(settings.musicVolume);
+        this.audioEngine.setSfxVolume(settings.sfxVolume);
+      },
+      onTestSound: () => {
+        this.audioEngine.init();
+        this.audioEngine.playKeyChime(3, true);
+      }
+    });
 
     this.tutorialModal = new TutorialModal(
       () => {
@@ -64,7 +82,6 @@ class TyponiacGame {
         this.loadAndStartTrack(CURATED_TRACKS[0]);
       },
       (step) => {
-        // Al pulsar tecla correcta en tutorial, reproducir nota armónica
         const col = step.targetKey === 'f' ? 3 : (step.targetKey === 'j' ? 6 : 4);
         this.audioEngine.playKeyChime(col, true);
       }
@@ -83,17 +100,31 @@ class TyponiacGame {
       onOpenSongCatalog: () => {
         this.audioEngine.init();
         this.songSelect.show();
+      },
+      onOpenSettings: () => {
+        this.audioEngine.init();
+        this.settingsModal.show();
       }
     });
+
+    // Aplicar volúmenes iniciales guardados
+    const initialSettings = this.difficultyManager.getSettings();
+    this.audioEngine.setMusicVolume(initialSettings.musicVolume);
+    this.audioEngine.setSfxVolume(initialSettings.sfxVolume);
 
     this.setupListeners();
   }
 
   public init(): void {
-    // Mostrar pantalla de bienvenida al inicio
     this.welcomeSplash.show();
     this.isRunning = true;
     requestAnimationFrame(() => this.gameLoop());
+  }
+
+  public returnToHome(): void {
+    this.audioEngine.stop();
+    this.gameState.currentTrack = null;
+    this.welcomeSplash.show();
   }
 
   public async loadAndStartTrack(track: BeatmapData): Promise<void> {
@@ -115,9 +146,13 @@ class TyponiacGame {
       if (e.code === 'Space') {
         e.preventDefault();
       }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        this.settingsModal.show();
+        return;
+      }
       if (e.repeat) return;
 
-      // Si el tutorial está activo, delegar la tecla
       if (this.isTutorialActive) {
         if (this.tutorialModal.handleKeyPress(e.key)) {
           return;
@@ -132,16 +167,18 @@ class TyponiacGame {
     if (!this.isRunning || !this.gameState.currentTrack) return;
 
     const masterTime = this.audioEngine.getMasterTime();
+    const settings = this.difficultyManager.getSettings();
+
     const hitResult = this.rhythmEngine.evaluateHit(
       key,
       code,
       masterTime,
-      this.gameState.activeNotes
+      this.gameState.activeNotes,
+      settings
     );
 
     if (!hitResult) return;
 
-    // Registrar en Debug Tester permanente
     this.debugTester.recordHit(hitResult);
 
     const colIndex = hitResult.keyInfo ? hitResult.keyInfo.colIndex : 4;
@@ -161,11 +198,12 @@ class TyponiacGame {
 
     // 3. Feedback Visual Flotante y Partículas
     const centerX = window.innerWidth / 2;
-    const hitLineY = window.innerHeight * 0.42;
+    const hitLineY = Math.max(220, window.innerHeight * 0.36);
     const hitLineX = centerX - 450 + (colIndex * 90) + 40;
 
     let judgmentColor = THEME.perfect;
     if (hitResult.judgment === 'GREAT') judgmentColor = THEME.great;
+    if (hitResult.judgment === 'GOOD') judgmentColor = THEME.warmYellow;
     if (hitResult.judgment === 'MISS') judgmentColor = THEME.miss;
 
     this.renderer.showJudgment(hitResult.judgment, judgmentColor, hitLineX, hitLineY);
@@ -183,8 +221,9 @@ class TyponiacGame {
     if (!this.isRunning) return;
 
     const masterTime = this.audioEngine.getMasterTime();
+    const settings = this.difficultyManager.getSettings();
 
-    // 1. Modo Bot / Autoplay para pruebas y testing automatizado
+    // 1. Modo Bot / Autoplay para pruebas automatizadas
     if (this.debugTester.isBotEnabled && this.gameState.currentTrack) {
       const botKey = this.debugTester.getBotAction(this.gameState.activeNotes, masterTime);
       if (botKey) {
@@ -192,11 +231,11 @@ class TyponiacGame {
       }
     }
 
-    // 2. Limpiar notas pasadas de tiempo (> 0.08s tarde)
+    // 2. Limpiar notas pasadas de tiempo según la tolerancia configurada
     if (this.gameState.currentTrack) {
       for (let i = this.gameState.activeNotes.length - 1; i >= 0; i--) {
         const note = this.gameState.activeNotes[i];
-        if (masterTime - note.time > 0.08) {
+        if (masterTime - note.time > settings.windowMiss) {
           this.gameState.registerHit('MISS');
           this.audioEngine.playSoftMiss();
           this.debugTester.recordHit({
@@ -212,8 +251,8 @@ class TyponiacGame {
       }
     }
 
-    // 3. Render de Canvas a 120 FPS
-    this.renderer.render(this.gameState, masterTime);
+    // 3. Render de Canvas a 120 FPS con approachTime elástico
+    this.renderer.render(this.gameState, masterTime, settings.approachTime);
 
     // 4. Actualización de HUD y Debug Tester
     const stdDev = this.rhythmEngine.getLatencyStdDev();

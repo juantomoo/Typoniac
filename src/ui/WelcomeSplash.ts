@@ -1,7 +1,7 @@
 /**
  * Pantalla de Splash y Menú Principal de Bienvenida
  * Estética cristalina "OSU! Light", amigable y sin prisa motora.
- * Desbloquea el AudioContext con un gesto de usuario explícito.
+ * Incluye accesos directos al Tutorial, Canciones y Calibración de Dificultad.
  */
 
 import { BeatmapData, CURATED_TRACKS } from '../config/songs';
@@ -10,6 +10,7 @@ export interface SplashActions {
   onStartTutorial: () => void;
   onSelectSong: (track: BeatmapData) => void;
   onOpenSongCatalog: () => void;
+  onOpenSettings: () => void;
 }
 
 export class WelcomeSplash {
@@ -67,7 +68,7 @@ export class WelcomeSplash {
             <div class="opt-icon">🎵</div>
             <div class="opt-content">
               <h3>Nivel 1: Subwoofer Lullaby</h3>
-              <p>Música suave de Minecraft a 70 BPM. Curva muy lenta y guiada para la Hilera Central.</p>
+              <p>Música suave de Minecraft a 70 BPM. Curva lenta y guiada para la Hilera Central.</p>
               <span class="opt-badge badge-green">Fase Cognitiva (5-7 años)</span>
             </div>
           </div>
@@ -81,6 +82,12 @@ export class WelcomeSplash {
               <span class="opt-badge badge-blue">Niveles 1, 2 y 3</span>
             </div>
           </div>
+        </div>
+
+        <div class="splash-sub-actions">
+          <button id="btn-splash-settings" class="btn-glass btn-settings-wide">
+            ⚙️ Calibrar Dificultad, Tolerancia Rítmica y Sonido
+          </button>
         </div>
 
         <footer class="splash-footer">
@@ -111,6 +118,13 @@ export class WelcomeSplash {
       btnAll.addEventListener('click', () => {
         this.hide();
         this.actions.onOpenSongCatalog();
+      });
+    }
+
+    const btnSettings = this.overlay.querySelector('#btn-splash-settings');
+    if (btnSettings) {
+      btnSettings.addEventListener('click', () => {
+        this.actions.onOpenSettings();
       });
     }
   }

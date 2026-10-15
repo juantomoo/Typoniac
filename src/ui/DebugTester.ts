@@ -212,7 +212,7 @@ export class DebugTester {
     for (const note of activeNotes) {
       const diff = masterTime - note.time;
       if (this.botAccuracyMode === 'perfect') {
-        if (Math.abs(diff) <= 0.012) {
+        if (Math.abs(diff) <= 0.035) {
           return note.char;
         }
       } else {

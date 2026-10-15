@@ -20,7 +20,6 @@ export class CanvasRenderer {
   private height: number = 0;
   private dpr: number = 1;
 
-  // Feedback de juicio visual flotante
   private floatingJudgment: { text: string; color: string; alpha: number; y: number } | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -44,7 +43,7 @@ export class CanvasRenderer {
     this.ctx.scale(this.dpr, this.dpr);
   }
 
-  public render(gameState: GameState, masterTime: number): void {
+  public render(gameState: GameState, masterTime: number, approachTime: number = 2.5): void {
     const ctx = this.ctx;
     const w = this.width;
     const h = this.height;
@@ -66,7 +65,6 @@ export class CanvasRenderer {
     }
 
     const centerX = w / 2;
-    // Espaciado ergonómico optimizado
     const hitLineY = Math.max(220, h * 0.36);
     const keyboardBaseY = Math.max(340, h * 0.52);
 
@@ -84,7 +82,6 @@ export class CanvasRenderer {
     ctx.lineTo(centerX + 480, hitLineY);
     ctx.stroke();
 
-    // Marcadores de diana de impacto en cada columna
     for (let c = 0; c < 10; c++) {
       const targetX = centerX - 450 + (c * 90) + 40;
       ctx.fillStyle = '#FFFFFF';
@@ -98,7 +95,7 @@ export class CanvasRenderer {
     ctx.restore();
 
     // 5. Determinar la Próxima Nota para iluminar el dedo en tiempo real
-    const upcoming = gameState.activeNotes.find(n => n.time >= masterTime && n.time <= masterTime + 1.2);
+    const upcoming = gameState.activeNotes.find(n => n.time >= masterTime && n.time <= masterTime + approachTime);
     let targetFinger: string | null = null;
     let targetKey: string | null = null;
 
@@ -112,8 +109,8 @@ export class CanvasRenderer {
       }
     }
 
-    // 6. Renderizar Notas Rítmicas OSU! Light
-    this.noteRenderer.render(ctx, gameState.activeNotes, masterTime, centerX, hitLineY, 900);
+    // 6. Renderizar Notas Rítmicas OSU! Light con velocidad elástica
+    this.noteRenderer.render(ctx, gameState.activeNotes, masterTime, centerX, hitLineY, 900, approachTime);
 
     // 7. Renderizar Manos Holográficas y Teclado Virtual con Atenuación Visual
     this.handGuide.render(
@@ -126,7 +123,7 @@ export class CanvasRenderer {
       performance.now() / 1000
     );
 
-    // 8. Texto Flotante de Juicio (PERFECT / GREAT / MISS)
+    // 8. Texto Flotante de Juicio (PERFECT / GREAT / GOOD / MISS)
     if (this.floatingJudgment) {
       ctx.save();
       ctx.fillStyle = this.floatingJudgment.color;
@@ -153,7 +150,6 @@ export class CanvasRenderer {
     if (time > 3.0 && time <= 4.2) countText = '1';
     if (time > 4.2) countText = '¡A TOCAR!';
 
-    // Fondo pastilla translúcida
     ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
     ctx.strokeStyle = THEME.primaryCyan;
     ctx.lineWidth = 2;
