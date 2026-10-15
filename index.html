@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Typoniac — Videojuego Rítmico de Mecanografía (OSU! Light Edition)</title>
   
-  <!-- Tipografías de alta fidelidad ergonómica -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700&family=Outfit:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
@@ -13,6 +12,11 @@
   <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
+  <!-- Línea de Progreso Horizontal Sutil en la parte superior -->
+  <div id="song-progress-track" class="song-progress-track">
+    <div id="song-progress-fill" class="song-progress-fill"></div>
+  </div>
+
   <canvas id="game-canvas"></canvas>
 
   <script type="module" src="/src/main.ts"></script>

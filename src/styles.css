@@ -1051,3 +1051,227 @@ body, html {
   padding: 8px 12px;
   font-size: 14px;
 }
+
+/* ==========================================================================
+   LÍNEA DE PROGRESO HORIZONTAL SUTIL
+   ========================================================================== */
+.song-progress-track {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: rgba(226, 232, 240, 0.5);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.song-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--cyan-primary), #10B981);
+  box-shadow: 0 0 10px rgba(0, 194, 224, 0.8);
+  transition: width 0.1s linear;
+}
+
+/* ==========================================================================
+   RESULTS MODAL (FIN DE CANCIÓN)
+   ========================================================================== */
+.results-card {
+  max-width: 680px;
+  width: 92%;
+  text-align: center;
+  align-items: center;
+  padding: 32px 36px;
+}
+
+.results-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+  width: 100%;
+  text-align: left;
+}
+
+.grade-badge {
+  width: 80px;
+  height: 80px;
+  border-radius: 24px;
+  border: 4px solid var(--cyan-primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: var(--font-heading);
+  font-size: 46px;
+  font-weight: 900;
+  background: #FFFFFF;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.results-titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.results-song {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+
+.results-artist {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.results-praise {
+  font-size: 14px;
+  font-weight: 800;
+  font-family: var(--font-heading);
+  margin-top: 4px;
+}
+
+.results-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.r-stat-box {
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.r-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.r-val {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+
+.r-val small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.val-score {
+  color: var(--cyan-primary);
+}
+
+.results-breakdown {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  background: rgba(241, 245, 249, 0.7);
+  border-radius: 14px;
+  padding: 10px 16px;
+  margin-bottom: 18px;
+}
+
+.b-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.b-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.b-perfect .b-dot { background: #10B981; }
+.b-great .b-dot { background: #3B82F6; }
+.b-good .b-dot { background: #F59E0B; }
+.b-miss .b-dot { background: #EF4444; }
+
+.b-num {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.results-diagnosis {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  width: 100%;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.d-icon {
+  font-size: 24px;
+}
+
+.d-text {
+  font-size: 12px;
+  color: #166534;
+  line-height: 1.4;
+}
+
+.results-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+}
+
+.diff-quick-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 4px 10px;
+}
+
+.diff-q-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.btn-diff-mini {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+
+.btn-diff-mini:hover {
+  background: #FFFFFF;
+  color: var(--cyan-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}

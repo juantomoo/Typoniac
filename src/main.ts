@@ -17,6 +17,7 @@ import { WelcomeSplash } from './ui/WelcomeSplash';
 import { TutorialModal } from './ui/TutorialModal';
 import { DebugTester } from './ui/DebugTester';
 import { SettingsModal } from './ui/SettingsModal';
+import { ResultsModal } from './ui/ResultsModal';
 import { DifficultyManager, DifficultySettings } from './config/difficulty';
 import { CURATED_TRACKS, BeatmapData } from './config/songs';
 import { THEME } from './config/theme';
@@ -38,9 +39,12 @@ class TyponiacGame {
   private tutorialModal: TutorialModal;
   private debugTester: DebugTester;
   private settingsModal: SettingsModal;
+  private resultsModal: ResultsModal;
 
+  private progressBarFill: HTMLElement | null = null;
   private isRunning: boolean = false;
   private isTutorialActive: boolean = false;
+  private isSongCompleted: boolean = false;
 
   constructor() {
     this.canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -52,9 +56,35 @@ class TyponiacGame {
     this.debugTester = new DebugTester();
     this.difficultyManager = new DifficultyManager();
 
+    // Captura de barra de progreso
+    this.progressBarFill = document.getElementById('song-progress-fill');
+
     // Modales y HUD
     this.pauseModal = new PauseModal(() => this.resumeFromHygienePause());
     this.hygieneTimer = new HygieneTimer(() => this.triggerHygienePause());
+
+    this.resultsModal = new ResultsModal({
+      onReplay: () => {
+        if (this.gameState.currentTrack) {
+          this.loadAndStartTrack(this.gameState.currentTrack);
+        }
+      },
+      onNextSong: () => {
+        const cur = this.gameState.currentTrack;
+        const curIdx = cur ? CURATED_TRACKS.findIndex(t => t.id === cur.id) : 0;
+        const nextIdx = (curIdx + 1) % CURATED_TRACKS.length;
+        this.loadAndStartTrack(CURATED_TRACKS[nextIdx]);
+      },
+      onChangeDifficulty: (preset) => {
+        this.difficultyManager.applyPreset(preset);
+        if (this.gameState.currentTrack) {
+          this.loadAndStartTrack(this.gameState.currentTrack);
+        }
+      },
+      onReturnToHome: () => {
+        this.returnToHome();
+      }
+    });
 
     this.hud = new HUD({
       onSelectFadeMode: (mode: FadeMode) => this.gameState.setFadeMode(mode),
@@ -116,20 +146,42 @@ class TyponiacGame {
   }
 
   public init(): void {
+    (window as any).__typoniacGame = this;
     this.welcomeSplash.show();
     this.isRunning = true;
     requestAnimationFrame(() => this.gameLoop());
   }
 
+  public triggerSongCompletion(): void {
+    if (!this.gameState.currentTrack) return;
+    this.isSongCompleted = true;
+    this.audioEngine.stop();
+    if (this.progressBarFill) {
+      this.progressBarFill.style.width = '100%';
+    }
+    const stdDev = this.rhythmEngine.getLatencyStdDev();
+    this.resultsModal.show(this.gameState, this.gameState.currentTrack, stdDev);
+  }
+
   public returnToHome(): void {
     this.audioEngine.stop();
+    this.resultsModal.hide();
+    this.isSongCompleted = false;
     this.gameState.currentTrack = null;
+    if (this.progressBarFill) {
+      this.progressBarFill.style.width = '0%';
+    }
     this.welcomeSplash.show();
   }
 
   public async loadAndStartTrack(track: BeatmapData): Promise<void> {
     this.audioEngine.init();
     this.audioEngine.stop();
+    this.resultsModal.hide();
+    this.isSongCompleted = false;
+    if (this.progressBarFill) {
+      this.progressBarFill.style.width = '0%';
+    }
     this.gameState.reset(track);
 
     this.hygieneTimer.start();
@@ -254,10 +306,28 @@ class TyponiacGame {
     // 3. Render de Canvas a 120 FPS con approachTime elástico
     this.renderer.render(this.gameState, masterTime, settings.approachTime);
 
-    // 4. Actualización de HUD y Debug Tester
+    // 4. Actualización de Barra de Progreso Sutil
+    if (this.gameState.currentTrack && this.progressBarFill) {
+      const pct = Math.min(100, Math.max(0, (masterTime / this.gameState.currentTrack.duration) * 100));
+      this.progressBarFill.style.width = `${pct}%`;
+    }
+
+    // 5. Actualización de HUD y Debug Tester
     const stdDev = this.rhythmEngine.getLatencyStdDev();
     this.hud.update(this.gameState, this.hygieneTimer, stdDev);
     this.debugTester.update(this.audioEngine, this.rhythmEngine, this.gameState);
+
+    // 6. Detección de Fin de Canción y Lanzamiento de ResultsModal
+    if (this.gameState.currentTrack && !this.isSongCompleted) {
+      const track = this.gameState.currentTrack;
+      const isFinishedByTime = masterTime >= track.duration;
+      const lastNoteTime = track.notes.length > 0 ? track.notes[track.notes.length - 1].time : 0;
+      const isFinishedByNotes = this.gameState.activeNotes.length === 0 && masterTime > (lastNoteTime + 2.0);
+
+      if (isFinishedByTime || isFinishedByNotes) {
+        this.triggerSongCompletion();
+      }
+    }
 
     requestAnimationFrame(() => this.gameLoop());
   }
@@ -274,8 +344,14 @@ class TyponiacGame {
   }
 }
 
-// Iniciar aplicación
-window.addEventListener('DOMContentLoaded', () => {
+// Iniciar aplicación asegurando ejecución inmediata si el DOM ya cargó
+function bootstrap(): void {
   const game = new TyponiacGame();
   game.init();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}
