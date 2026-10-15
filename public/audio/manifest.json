@@ -1,0 +1,74 @@
+[
+  {
+    "id": "c418_subwoofer",
+    "title": "Subwoofer Lullaby",
+    "artist": "C418",
+    "bpm": 70,
+    "duration": 75,
+    "level": 1,
+    "age": "5-7 años",
+    "description": "Fase Cognitiva - Hilera Guía central (A-S-D-F / J-K-L-Ñ)",
+    "audioUrl": "./audio/c418_subwoofer.mp3",
+    "hasAudio": true
+  },
+  {
+    "id": "mario_dire_docks",
+    "title": "Dire, Dire Docks",
+    "artist": "Koji Kondo",
+    "bpm": 80,
+    "duration": 75,
+    "level": 1,
+    "age": "5-7 años",
+    "description": "Fase Cognitiva - Arpegios acuáticos y anclaje F y J",
+    "audioUrl": "./audio/mario_dire_docks.mp3",
+    "hasAudio": true
+  },
+  {
+    "id": "totoro_theme",
+    "title": "My Neighbor Totoro",
+    "artist": "Joe Hisaishi",
+    "bpm": 90,
+    "duration": 75,
+    "level": 2,
+    "age": "7-9 años",
+    "description": "Fase Asociativa - Hilera superior y coordinación bimanual",
+    "audioUrl": "./audio/totoro_theme.mp3",
+    "hasAudio": true
+  },
+  {
+    "id": "viva_la_vida",
+    "title": "Viva La Vida",
+    "artist": "Coldplay (Strings)",
+    "bpm": 98,
+    "duration": 75,
+    "level": 2,
+    "age": "7-9 años",
+    "description": "Fase Asociativa - Bigramas continuos e hilera inferior",
+    "audioUrl": "./audio/viva_la_vida.mp3",
+    "hasAudio": true
+  },
+  {
+    "id": "undertale_once",
+    "title": "Once Upon a Time",
+    "artist": "Toby Fox",
+    "bpm": 110,
+    "duration": 75,
+    "level": 3,
+    "age": "9-10 años",
+    "description": "Fase Autónoma - Mecanografía a ciegas y números",
+    "audioUrl": "./audio/undertale_once.mp3",
+    "hasAudio": true
+  },
+  {
+    "id": "harder_better",
+    "title": "Harder, Better, Faster, Stronger",
+    "artist": "Daft Punk",
+    "bpm": 123,
+    "duration": 75,
+    "level": 3,
+    "age": "9-10 años",
+    "description": "Fase Autónoma - Ráfagas de n-gramas rítmicos (>25 WPM)",
+    "audioUrl": "./audio/harder_better.mp3",
+    "hasAudio": true
+  }
+]
