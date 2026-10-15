@@ -1275,3 +1275,181 @@ body, html {
   color: var(--cyan-primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
+
+/* ==========================================================================
+   ESTILOS DE RÉCORDS Y LOGROS (SELF-DETERMINATION THEORY)
+   ========================================================================== */
+.card-badge-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.card-record-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 8px;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.grade-S {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.grade-A {
+  background: rgba(0, 194, 224, 0.12);
+  color: #00C2E0;
+  border: 1px solid rgba(0, 194, 224, 0.3);
+}
+
+.grade-B {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3B82F6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.grade-C {
+  background: rgba(245, 158, 11, 0.12);
+  color: #F59E0B;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.grade-D {
+  background: rgba(239, 68, 68, 0.12);
+  color: #EF4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.record-new {
+  background: rgba(148, 163, 184, 0.1);
+  color: #94A3B8;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.track-record-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 4px 8px;
+  border-radius: 8px;
+  margin-top: 6px;
+}
+
+.new-record-pill {
+  background: linear-gradient(90deg, #F59E0B, #EF4444);
+  color: #FFFFFF;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  padding: 6px 18px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+  animation: pulsePill 1.8s infinite ease-in-out;
+}
+
+@keyframes pulsePill {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+/* ==========================================================================
+   MODAL DE PAUSA EN PARTIDA (IN-GAME PAUSE)
+   ========================================================================== */
+.pause-ingame-card {
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  padding: 32px 28px;
+}
+
+.pause-header {
+  margin-bottom: 20px;
+}
+
+.pause-badge {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--cyan-primary);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.pause-track-title {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.pause-track-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.pause-live-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 12px 8px;
+  margin-bottom: 24px;
+}
+
+.p-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.p-lbl {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.p-val {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
+.pause-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.btn-wide {
+  width: 100%;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pause-tip {
+  border-top: 1px solid var(--border-soft);
+  padding-top: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}

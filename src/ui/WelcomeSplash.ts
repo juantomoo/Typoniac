@@ -5,6 +5,7 @@
  */
 
 import { BeatmapData, CURATED_TRACKS } from '../config/songs';
+import { ScoreManager } from '../config/scores';
 
 export interface SplashActions {
   onStartTutorial: () => void;
@@ -29,6 +30,7 @@ export class WelcomeSplash {
   }
 
   public show(): void {
+    this.render();
     this.overlay.classList.remove('hidden');
   }
 
@@ -38,6 +40,7 @@ export class WelcomeSplash {
 
   private render(): void {
     const firstTrack = CURATED_TRACKS[0];
+    const rec = ScoreManager.getRecord(firstTrack.id);
 
     this.overlay.innerHTML = `
       <div class="modal-card splash-card">
@@ -69,7 +72,11 @@ export class WelcomeSplash {
             <div class="opt-content">
               <h3>Nivel 1: Subwoofer Lullaby</h3>
               <p>Música suave de Minecraft a 70 BPM. Curva lenta y guiada para la Hilera Central.</p>
-              <span class="opt-badge badge-green">Fase Cognitiva (5-7 años)</span>
+              ${rec ? `
+                <span class="opt-badge badge-green">⭐ Rango ${rec.bestGrade} • ${rec.bestAccuracy}% (${rec.highScore.toLocaleString()} pts)</span>
+              ` : `
+                <span class="opt-badge badge-green">Fase Cognitiva (5-7 años)</span>
+              `}
             </div>
           </div>
 

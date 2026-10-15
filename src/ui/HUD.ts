@@ -11,6 +11,7 @@ export interface HUDCallbacks {
   onOpenSongSelect: () => void;
   onReturnToHome: () => void;
   onOpenSettings: () => void;
+  onPauseGame: () => void;
 }
 
 export class HUD {
@@ -82,6 +83,10 @@ export class HUD {
         </div>
 
         <div class="hud-right">
+          <button id="btn-hud-pause" class="btn-glass btn-icon-only" title="Pausar Partida (Esc)">
+            ⏸️
+          </button>
+
           <button id="btn-hud-settings" class="btn-glass btn-icon-only" title="Ajustes y Calibración de Dificultad">
             ⚙️
           </button>
@@ -117,6 +122,9 @@ export class HUD {
 
     const btnSelect = this.container.querySelector('#btn-song-select');
     if (btnSelect) btnSelect.addEventListener('click', () => this.callbacks.onOpenSongSelect());
+
+    const btnPause = this.container.querySelector('#btn-hud-pause');
+    if (btnPause) btnPause.addEventListener('click', () => this.callbacks.onPauseGame());
 
     const btnSettings = this.container.querySelector('#btn-hud-settings');
     if (btnSettings) btnSettings.addEventListener('click', () => this.callbacks.onOpenSettings());

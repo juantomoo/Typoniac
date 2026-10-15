@@ -18,6 +18,7 @@ import { TutorialModal } from './ui/TutorialModal';
 import { DebugTester } from './ui/DebugTester';
 import { SettingsModal } from './ui/SettingsModal';
 import { ResultsModal } from './ui/ResultsModal';
+import { InGamePauseModal } from './ui/InGamePauseModal';
 import { DifficultyManager, DifficultySettings } from './config/difficulty';
 import { CURATED_TRACKS, BeatmapData } from './config/songs';
 import { THEME } from './config/theme';
@@ -35,6 +36,7 @@ class TyponiacGame {
   private hud: HUD;
   private songSelect: SongSelect;
   private pauseModal: PauseModal;
+  private inGamePauseModal: InGamePauseModal;
   private welcomeSplash: WelcomeSplash;
   private tutorialModal: TutorialModal;
   private debugTester: DebugTester;
@@ -86,11 +88,31 @@ class TyponiacGame {
       }
     });
 
+    this.inGamePauseModal = new InGamePauseModal({
+      onResume: () => {
+        if (this.gameState.currentTrack) {
+          this.audioEngine.resume(this.gameState.currentTrack.bpm);
+        }
+      },
+      onRestart: () => {
+        if (this.gameState.currentTrack) {
+          this.loadAndStartTrack(this.gameState.currentTrack);
+        }
+      },
+      onOpenSettings: () => {
+        this.settingsModal.show();
+      },
+      onReturnToHome: () => {
+        this.returnToHome();
+      }
+    });
+
     this.hud = new HUD({
       onSelectFadeMode: (mode: FadeMode) => this.gameState.setFadeMode(mode),
       onOpenSongSelect: () => this.songSelect.show(),
       onReturnToHome: () => this.returnToHome(),
-      onOpenSettings: () => this.settingsModal.show()
+      onOpenSettings: () => this.settingsModal.show(),
+      onPauseGame: () => this.togglePause()
     });
 
     this.songSelect = new SongSelect((track: BeatmapData) => this.loadAndStartTrack(track));
@@ -166,6 +188,7 @@ class TyponiacGame {
   public returnToHome(): void {
     this.audioEngine.stop();
     this.resultsModal.hide();
+    this.inGamePauseModal.hide();
     this.isSongCompleted = false;
     this.gameState.currentTrack = null;
     if (this.progressBarFill) {
@@ -178,6 +201,7 @@ class TyponiacGame {
     this.audioEngine.init();
     this.audioEngine.stop();
     this.resultsModal.hide();
+    this.inGamePauseModal.hide();
     this.isSongCompleted = false;
     if (this.progressBarFill) {
       this.progressBarFill.style.width = '0%';
@@ -187,6 +211,17 @@ class TyponiacGame {
     this.hygieneTimer.start();
     await this.audioEngine.loadAudio(track.audioUrl);
     this.audioEngine.play(0, track.bpm);
+  }
+
+  public togglePause(): void {
+    if (!this.gameState.currentTrack || this.isSongCompleted) return;
+    if (this.audioEngine.getIsPaused()) {
+      this.inGamePauseModal.hide();
+      this.audioEngine.resume(this.gameState.currentTrack.bpm);
+    } else {
+      this.audioEngine.pause();
+      this.inGamePauseModal.show(this.gameState.currentTrack, this.gameState);
+    }
   }
 
   private setupListeners(): void {
@@ -200,7 +235,11 @@ class TyponiacGame {
       }
       if (e.key === 'Escape') {
         e.preventDefault();
-        this.settingsModal.show();
+        if (this.gameState.currentTrack && !this.isSongCompleted) {
+          this.togglePause();
+        } else {
+          this.settingsModal.show();
+        }
         return;
       }
       if (e.repeat) return;
@@ -216,7 +255,7 @@ class TyponiacGame {
   }
 
   private handleKeystroke(key: string, code: string): void {
-    if (!this.isRunning || !this.gameState.currentTrack) return;
+    if (!this.isRunning || !this.gameState.currentTrack || this.audioEngine.getIsPaused()) return;
 
     const masterTime = this.audioEngine.getMasterTime();
     const settings = this.difficultyManager.getSettings();
@@ -248,7 +287,12 @@ class TyponiacGame {
     this.gameState.registerHit(hitResult.judgment, errorColor);
     this.adaptiveLogic.recordKeystroke(key, hitResult.judgment === 'MISS', Math.abs(hitResult.deltaMs));
 
-    // 3. Feedback Visual Flotante y Partículas
+    // 3. Recompensa auditiva de racha (Combo Milestones: 10x, 25x, 50x, 75x...)
+    if (this.gameState.combo > 0 && (this.gameState.combo === 10 || this.gameState.combo % 25 === 0)) {
+      this.audioEngine.playComboMilestone(this.gameState.combo);
+    }
+
+    // 4. Feedback Visual Flotante y Partículas
     const centerX = window.innerWidth / 2;
     const hitLineY = Math.max(220, window.innerHeight * 0.36);
     const hitLineX = centerX - 450 + (colIndex * 90) + 40;
@@ -260,7 +304,7 @@ class TyponiacGame {
 
     this.renderer.showJudgment(hitResult.judgment, judgmentColor, hitLineX, hitLineY);
 
-    // 4. Remover nota juzgada
+    // 5. Remover nota juzgada
     if (hitResult.noteId !== 'none') {
       const idx = this.gameState.activeNotes.findIndex(n => n.id === hitResult.noteId);
       if (idx !== -1) {
@@ -271,6 +315,12 @@ class TyponiacGame {
 
   private gameLoop(): void {
     if (!this.isRunning) return;
+
+    // Si el juego está en pausa, mantener bucle sin avanzar notas ni tiempo
+    if (this.audioEngine.getIsPaused()) {
+      requestAnimationFrame(() => this.gameLoop());
+      return;
+    }
 
     const masterTime = this.audioEngine.getMasterTime();
     const settings = this.difficultyManager.getSettings();

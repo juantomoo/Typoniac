@@ -7,6 +7,7 @@
 import { GameState } from '../state/GameState';
 import { BeatmapData } from '../config/songs';
 import { DifficultyPreset } from '../config/difficulty';
+import { ScoreManager } from '../config/scores';
 
 export interface ResultsActions {
   onReplay: () => void;
@@ -51,8 +52,22 @@ export class ResultsModal {
     const grossWpm = gameState.getGrossWpm();
     const gradeInfo = this.calculateGrade(acc);
 
+    const recordResult = ScoreManager.saveResult(
+      track.id,
+      gameState.score,
+      acc,
+      gameState.maxCombo,
+      netWpm,
+      gradeInfo.grade as 'S' | 'A' | 'B' | 'C' | 'D'
+    );
+
     this.overlay.innerHTML = `
       <div class="modal-card results-card">
+        ${recordResult.isNewHighScore ? `
+          <div class="new-record-pill">
+            ✨ ¡NUEVO RÉCORD PERSONAL! ✨
+          </div>
+        ` : ''}
         <header class="results-header">
           <div class="grade-badge" style="border-color: ${gradeInfo.color}; color: ${gradeInfo.color}">
             ${gradeInfo.grade}

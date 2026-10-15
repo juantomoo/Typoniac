@@ -14,6 +14,8 @@ export class AudioEngine {
   
   private startTime: number = 0;
   private isPlaying: boolean = false;
+  private isPaused: boolean = false;
+  private pauseTime: number = 0;
   private proceduralInterval: number | null = null;
 
   // Escala pentatónica diatónica cristalina para feedback dactilar armónico
@@ -61,7 +63,9 @@ export class AudioEngine {
   }
 
   public getMasterTime(): number {
-    if (!this.ctx || !this.isPlaying) return 0;
+    if (!this.ctx) return 0;
+    if (this.isPaused) return this.pauseTime;
+    if (!this.isPlaying) return 0;
     return this.ctx.currentTime - this.startTime;
   }
 
@@ -88,6 +92,8 @@ export class AudioEngine {
 
     this.stop();
     this.isPlaying = true;
+    this.isPaused = false;
+    this.pauseTime = offsetSeconds;
     this.startTime = this.ctx.currentTime - offsetSeconds;
 
     if (this.musicBuffer) {
@@ -101,6 +107,33 @@ export class AudioEngine {
     }
   }
 
+  public pause(): void {
+    if (!this.isPlaying || this.isPaused) return;
+    this.pauseTime = this.getMasterTime();
+    if (this.musicSource) {
+      try {
+        this.musicSource.stop();
+        this.musicSource.disconnect();
+      } catch {
+        // Ignorar
+      }
+      this.musicSource = null;
+    }
+    if (this.proceduralInterval) {
+      window.clearInterval(this.proceduralInterval);
+      this.proceduralInterval = null;
+    }
+    this.isPaused = true;
+  }
+
+  public resume(bpm: number = 80): void {
+    if (!this.isPaused) return;
+    this.play(this.pauseTime, bpm);
+  }
+
+  public getIsPaused(): boolean {
+    return this.isPaused;
+  }
 
   public setMusicVolume(vol: number): void {
     if (this.musicGain && this.ctx) {
@@ -131,6 +164,39 @@ export class AudioEngine {
     }
 
     this.isPlaying = false;
+    this.isPaused = false;
+    this.pauseTime = 0;
+  }
+
+  /**
+   * Arpegio Cristalino de Celebración de Racha (Neuropedagogía / Recompensa Dopaminérgica)
+   * Se ejecuta en hitos de combo (10x, 25x, 50x, 100x).
+   */
+  public playComboMilestone(combo: number): void {
+    if (!this.ctx || !this.sfxGain) return;
+    const t = this.ctx.currentTime;
+
+    const baseFreq = combo >= 50 ? 523.25 : 392.00;
+    const intervals = [1, 1.25, 1.5, 2.0]; // Arpegio Mayor
+
+    intervals.forEach((ratio, idx) => {
+      const noteTime = t + idx * 0.045;
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseFreq * ratio, noteTime);
+
+      gain.gain.setValueAtTime(0.001, noteTime);
+      gain.gain.linearRampToValueAtTime(0.22, noteTime + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, noteTime + 0.22);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain!);
+
+      osc.start(noteTime);
+      osc.stop(noteTime + 0.25);
+    });
   }
 
   /**

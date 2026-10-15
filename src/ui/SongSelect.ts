@@ -3,6 +3,7 @@
  */
 
 import { CURATED_TRACKS, BeatmapData } from '../config/songs';
+import { ScoreManager } from '../config/scores';
 
 export class SongSelect {
   private overlay: HTMLDivElement;
@@ -27,6 +28,8 @@ export class SongSelect {
   }
 
   private render(): void {
+    const records = ScoreManager.getAllRecords();
+
     this.overlay.innerHTML = `
       <div class="modal-card">
         <header class="modal-header">
@@ -38,20 +41,41 @@ export class SongSelect {
         </header>
 
         <div class="track-grid">
-          ${CURATED_TRACKS.map(track => `
+          ${CURATED_TRACKS.map(track => {
+            const rec = records[track.id];
+            return `
             <div class="track-card level-${track.level}" data-id="${track.id}">
-              <div class="card-badge">Fase ${track.level} • ${track.age}</div>
+              <div class="card-badge-row">
+                <span class="card-badge">Fase ${track.level} • ${track.age}</span>
+                ${rec ? `
+                  <span class="card-record-badge grade-${rec.bestGrade}">
+                    ⭐ Rango ${rec.bestGrade} • ${rec.bestAccuracy}%
+                  </span>
+                ` : `
+                  <span class="card-record-badge record-new">
+                    ✨ Nueva
+                  </span>
+                `}
+              </div>
               <div class="card-body">
                 <h3 class="track-title">${track.title}</h3>
                 <p class="track-artist">${track.artist}</p>
                 <p class="track-desc">${track.description}</p>
+                ${rec ? `
+                  <div class="track-record-stats">
+                    <span>Mejor: <strong>${rec.highScore.toLocaleString()}</strong> pts</span>
+                    <span>WPM: <strong>${rec.bestWpm}</strong></span>
+                    <span>Combo: <strong>${rec.maxCombo}x</strong></span>
+                  </div>
+                ` : ''}
               </div>
               <div class="card-footer">
                 <span class="bpm-tag">${track.bpm} BPM</span>
                 <button class="btn-play-track" data-id="${track.id}">JUGAR ▶</button>
               </div>
             </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
       </div>
     `;
