@@ -1453,3 +1453,278 @@ body, html {
   color: var(--text-muted);
   line-height: 1.4;
 }
+
+/* ==========================================================================
+   MULTI-MODO: ESCUELA DE TECLAS & ESCRITURA ZEN
+   ========================================================================== */
+.splash-three-modes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .splash-three-modes {
+    grid-template-columns: 1fr;
+  }
+}
+
+.opt-progression:hover {
+  border-color: #10B981;
+  box-shadow: 0 10px 24px rgba(16, 185, 129, 0.15);
+}
+
+.opt-zen:hover {
+  border-color: #0D9488;
+  box-shadow: 0 10px 24px rgba(13, 148, 136, 0.15);
+}
+
+.badge-zen {
+  background: rgba(13, 148, 136, 0.12);
+  color: #0D9488;
+  border: 1px solid rgba(13, 148, 136, 0.25);
+}
+
+/* Debug Tester Mode Tag & Header */
+.dbg-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dbg-mode-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.tag-rhythm {
+  background: rgba(0, 194, 224, 0.2);
+  color: var(--cyan-primary);
+  border: 1px solid rgba(0, 194, 224, 0.4);
+}
+
+.tag-progression {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.tag-zen {
+  background: rgba(13, 148, 136, 0.2);
+  color: #0D9488;
+  border: 1px solid rgba(13, 148, 136, 0.4);
+}
+
+/* Modal Escuela de Teclas (Progression) */
+.progression-levels-container {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-height: 68vh;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.prog-level-group {
+  background: rgba(248, 250, 252, 0.85);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.prog-level-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-soft);
+  padding-bottom: 8px;
+}
+
+.prog-level-header h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.prog-level-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+}
+
+.prog-stage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.prog-stage-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.prog-stage-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: #10B981;
+}
+
+.st-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.st-num {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.st-keys {
+  display: flex;
+  gap: 4px;
+}
+
+.st-key-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  background: rgba(0, 194, 224, 0.1);
+  color: var(--cyan-primary);
+  border: 1px solid rgba(0, 194, 224, 0.3);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.st-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.st-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.btn-start-stage {
+  background: #10B981;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  margin-top: 4px;
+}
+
+.btn-start-stage:hover {
+  background: #059669;
+}
+
+/* Modal Escritura Zen Cosy */
+.zen-text-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
+  max-height: 68vh;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.zen-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.zen-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(13, 148, 136, 0.12);
+}
+
+.zen-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.zen-cat-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #0D9488;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.zen-words-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.zen-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.zen-author {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.zen-preview {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  background: rgba(248, 250, 252, 0.7);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+}
+
+.btn-start-zen {
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  width: 100%;
+}
+
+.btn-start-zen:hover {
+  opacity: 0.9;
+}
+

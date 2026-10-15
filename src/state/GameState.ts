@@ -5,13 +5,38 @@
 
 import { BeatmapData, NoteEvent } from '../config/songs';
 import { JudgmentType } from '../core/RhythmEngine';
+import { ProgressionStage } from '../config/progressionStages';
+import { ZenTextItem } from '../config/zenTexts';
 
 export type FadeMode = 1.0 | 0.5 | 0.0;
+export type GameModeType = 'rhythm' | 'progression' | 'zen';
 
 export class GameState {
+  public gameMode: GameModeType = 'rhythm';
+
+  // Modo Rítmico
   public currentTrack: BeatmapData | null = null;
   public activeNotes: NoteEvent[] = [];
   public judgedNoteIds: Set<string> = new Set();
+
+  // Modo Progresión de Teclas (NotebookLM)
+  public currentProgressionStage: ProgressionStage | null = null;
+  public progressionCursor: number = 0;
+  public progressionCorrect: number = 0;
+  public progressionMistakes: number = 0;
+  public progressionAccuracy: number = 100;
+  public progressionJitter: number = 0;
+
+  // Modo Escritura Zen Cosy
+  public currentZenText: ZenTextItem | null = null;
+  public zenCursor: number = 0;
+  public zenErrors: number = 0;
+  public zenCorrect: number = 0;
+  public zenKeystrokes: number = 0;
+  public zenMistakes: number = 0;
+  public zenAccuracy: number = 100;
+  public zenWpm: number = 0;
+  public zenTimeElapsed: number = 0;
 
   public score: number = 0;
   public combo: number = 0;
@@ -35,9 +60,91 @@ export class GameState {
   public targetFingerColor: string | null = null;
 
   public reset(track: BeatmapData): void {
+    this.gameMode = 'rhythm';
     this.currentTrack = track;
     this.activeNotes = [...track.notes];
     this.judgedNoteIds.clear();
+
+    this.currentProgressionStage = null;
+    this.progressionCursor = 0;
+    this.currentZenText = null;
+    this.zenCursor = 0;
+    this.zenErrors = 0;
+
+    this.score = 0;
+    this.combo = 0;
+    this.maxCombo = 0;
+
+    this.perfectCount = 0;
+    this.greatCount = 0;
+    this.goodCount = 0;
+    this.missCount = 0;
+
+    this.totalKeystrokes = 0;
+    this.correctKeystrokes = 0;
+    this.uniqueErrors = 0;
+    this.startTime = performance.now();
+
+    this.lastErrorFingerColor = null;
+    this.lastErrorTimestamp = 0;
+    this.targetFinger = null;
+    this.targetFingerColor = null;
+  }
+
+  public resetProgression(stage: ProgressionStage): void {
+    this.gameMode = 'progression';
+    this.currentTrack = null;
+    this.activeNotes = [];
+    this.judgedNoteIds.clear();
+
+    this.currentProgressionStage = stage;
+    this.progressionCursor = 0;
+    this.progressionCorrect = 0;
+    this.progressionMistakes = 0;
+    this.progressionAccuracy = 100;
+    this.progressionJitter = 0;
+
+    this.currentZenText = null;
+    this.zenCursor = 0;
+    this.zenErrors = 0;
+
+    this.score = 0;
+    this.combo = 0;
+    this.maxCombo = 0;
+
+    this.perfectCount = 0;
+    this.greatCount = 0;
+    this.goodCount = 0;
+    this.missCount = 0;
+
+    this.totalKeystrokes = 0;
+    this.correctKeystrokes = 0;
+    this.uniqueErrors = 0;
+    this.startTime = performance.now();
+
+    this.lastErrorFingerColor = null;
+    this.lastErrorTimestamp = 0;
+    this.targetFinger = null;
+    this.targetFingerColor = null;
+  }
+
+  public resetZen(textItem: ZenTextItem): void {
+    this.gameMode = 'zen';
+    this.currentTrack = null;
+    this.activeNotes = [];
+    this.judgedNoteIds.clear();
+
+    this.currentProgressionStage = null;
+    this.progressionCursor = 0;
+    this.currentZenText = textItem;
+    this.zenCursor = 0;
+    this.zenErrors = 0;
+    this.zenCorrect = 0;
+    this.zenKeystrokes = 0;
+    this.zenMistakes = 0;
+    this.zenAccuracy = 100;
+    this.zenWpm = 0;
+    this.zenTimeElapsed = 0;
 
     this.score = 0;
     this.combo = 0;

@@ -22,6 +22,13 @@ import { InGamePauseModal } from './ui/InGamePauseModal';
 import { DifficultyManager, DifficultySettings } from './config/difficulty';
 import { CURATED_TRACKS, BeatmapData } from './config/songs';
 import { THEME } from './config/theme';
+import { ProgressionEngine } from './core/ProgressionEngine';
+import { ZenEngine } from './core/ZenEngine';
+import { ProgressionModal } from './ui/ProgressionModal';
+import { ZenModal } from './ui/ZenModal';
+import { ProgressionStage } from './config/progressionStages';
+import { ZenTextItem } from './config/zenTexts';
+import { KEY_MAP_BY_CHAR, FINGER_COLORS } from './config/keymap';
 
 class TyponiacGame {
   private canvas: HTMLCanvasElement;
@@ -32,6 +39,8 @@ class TyponiacGame {
   private hygieneTimer: HygieneTimer;
   private gameState: GameState;
   private difficultyManager: DifficultyManager;
+  private progressionEngine: ProgressionEngine;
+  private zenEngine: ZenEngine;
 
   private hud: HUD;
   private songSelect: SongSelect;
@@ -42,6 +51,8 @@ class TyponiacGame {
   private debugTester: DebugTester;
   private settingsModal: SettingsModal;
   private resultsModal: ResultsModal;
+  private progressionModal: ProgressionModal;
+  private zenModal: ZenModal;
 
   private progressBarFill: HTMLElement | null = null;
   private isRunning: boolean = false;
@@ -139,6 +150,17 @@ class TyponiacGame {
       }
     );
 
+    this.progressionEngine = new ProgressionEngine();
+    this.zenEngine = new ZenEngine();
+
+    this.progressionModal = new ProgressionModal((stage) => {
+      this.loadAndStartProgression(stage);
+    });
+
+    this.zenModal = new ZenModal((textItem) => {
+      this.loadAndStartZen(textItem);
+    });
+
     this.welcomeSplash = new WelcomeSplash({
       onStartTutorial: () => {
         this.audioEngine.init();
@@ -152,6 +174,14 @@ class TyponiacGame {
       onOpenSongCatalog: () => {
         this.audioEngine.init();
         this.songSelect.show();
+      },
+      onOpenProgressionCatalog: () => {
+        this.audioEngine.init();
+        this.progressionModal.show();
+      },
+      onOpenZenCatalog: () => {
+        this.audioEngine.init();
+        this.zenModal.show();
       },
       onOpenSettings: () => {
         this.audioEngine.init();
@@ -191,6 +221,9 @@ class TyponiacGame {
     this.inGamePauseModal.hide();
     this.isSongCompleted = false;
     this.gameState.currentTrack = null;
+    this.gameState.currentProgressionStage = null;
+    this.gameState.currentZenText = null;
+    this.gameState.gameMode = 'rhythm';
     if (this.progressBarFill) {
       this.progressBarFill.style.width = '0%';
     }
@@ -213,7 +246,37 @@ class TyponiacGame {
     this.audioEngine.play(0, track.bpm);
   }
 
+  public loadAndStartProgression(stage: ProgressionStage): void {
+    this.audioEngine.init();
+    this.audioEngine.stop();
+    this.resultsModal.hide();
+    this.inGamePauseModal.hide();
+    this.isSongCompleted = false;
+    if (this.progressBarFill) {
+      this.progressBarFill.style.width = '0%';
+    }
+    this.gameState.resetProgression(stage);
+    this.progressionEngine.startStage(stage);
+  }
+
+  public loadAndStartZen(zenItem: ZenTextItem): void {
+    this.audioEngine.init();
+    this.audioEngine.stop();
+    this.resultsModal.hide();
+    this.inGamePauseModal.hide();
+    this.isSongCompleted = false;
+    if (this.progressBarFill) {
+      this.progressBarFill.style.width = '0%';
+    }
+    this.gameState.resetZen(zenItem);
+    this.zenEngine.startText(zenItem);
+  }
+
   public togglePause(): void {
+    if (this.gameState.gameMode !== 'rhythm') {
+      this.returnToHome();
+      return;
+    }
     if (!this.gameState.currentTrack || this.isSongCompleted) return;
     if (this.audioEngine.getIsPaused()) {
       this.inGamePauseModal.hide();
@@ -235,8 +298,10 @@ class TyponiacGame {
       }
       if (e.key === 'Escape') {
         e.preventDefault();
-        if (this.gameState.currentTrack && !this.isSongCompleted) {
+        if (this.gameState.gameMode === 'rhythm' && this.gameState.currentTrack && !this.isSongCompleted) {
           this.togglePause();
+        } else if (this.gameState.gameMode !== 'rhythm' && (this.gameState.currentProgressionStage || this.gameState.currentZenText)) {
+          this.returnToHome();
         } else {
           this.settingsModal.show();
         }
@@ -255,7 +320,136 @@ class TyponiacGame {
   }
 
   private handleKeystroke(key: string, code: string): void {
-    if (!this.isRunning || !this.gameState.currentTrack || this.audioEngine.getIsPaused()) return;
+    if (!this.isRunning) return;
+
+    // =========================================================================
+    // MODO 1: PROGRESIÓN NO MUSICAL (ESCUELA DE TECLAS)
+    // =========================================================================
+    if (this.gameState.gameMode === 'progression') {
+      const stage = this.gameState.currentProgressionStage;
+      if (!stage) return;
+      const expected = stage.practiceSequence[this.gameState.progressionCursor];
+      if (!expected) return;
+
+      const result = this.progressionEngine.evaluateInput(key, stage, this.gameState);
+      const meta = KEY_MAP_BY_CHAR[expected.toLowerCase()];
+      const colIndex = meta ? meta.colIndex : 4;
+      const fingerName = meta ? (FINGER_COLORS[meta.finger]?.label || 'Dedo') : 'Dedo';
+
+      if (result.isCorrect) {
+        this.audioEngine.playKeyChime(colIndex, true);
+        this.debugTester.recordHit({
+          noteId: `prog_${this.gameState.progressionCursor}`,
+          char: expected,
+          judgment: 'PERFECT',
+          deltaMs: result.deltaMs,
+          expectedFinger: fingerName,
+          isBiomechanicallyValid: true
+        });
+      } else {
+        this.audioEngine.playSoftMiss();
+        this.debugTester.recordHit({
+          noteId: `prog_${this.gameState.progressionCursor}`,
+          char: key,
+          judgment: 'MISS',
+          deltaMs: result.deltaMs,
+          expectedFinger: fingerName,
+          isBiomechanicallyValid: false
+        });
+      }
+
+      const evalData = this.progressionEngine.evaluateStageCompletion(stage, this.gameState);
+      this.gameState.progressionAccuracy = evalData.accuracy;
+      this.gameState.progressionJitter = Math.round(evalData.stdDevLatency);
+      this.gameState.progressionCorrect = this.gameState.correctKeystrokes;
+      this.gameState.progressionMistakes = this.gameState.uniqueErrors;
+
+      const centerX = window.innerWidth / 2;
+      const hitLineY = Math.min(230, window.innerHeight * 0.28);
+      this.renderer.showJudgment(
+        result.isCorrect ? 'PERFECT' : 'MISS',
+        result.isCorrect ? THEME.perfect : THEME.coralRed,
+        centerX,
+        hitLineY
+      );
+
+      if (this.progressBarFill) {
+        const pct = (this.gameState.progressionCursor / stage.practiceSequence.length) * 100;
+        this.progressBarFill.style.width = `${pct}%`;
+      }
+
+      if (result.isStageCompleted) {
+        this.audioEngine.playComboMilestone(50);
+        setTimeout(() => {
+          alert(`🎉 ¡Etapa completada!\n\nPrecisión: ${this.gameState.progressionAccuracy}%\nJitter: ${this.gameState.progressionJitter} ms\n\n${evalData.passed ? '¡Excelente! Has dominado esta lección de acuerdo a los estándares pedagógicos (≥95%).' : 'Buen intento. Practica una vez más para alcanzar el 95% de precisión.'}`);
+          this.returnToHome();
+        }, 200);
+      }
+      return;
+    }
+
+    // =========================================================================
+    // MODO 2: ESCRITURA ZEN COSY (TEXTOS Y FÁBULAS)
+    // =========================================================================
+    if (this.gameState.gameMode === 'zen') {
+      const zenItem = this.gameState.currentZenText;
+      if (!zenItem) return;
+      const expected = zenItem.text[this.gameState.zenCursor];
+      if (!expected) return;
+
+      const result = this.zenEngine.evaluateInput(key, zenItem, this.gameState);
+      const meta = KEY_MAP_BY_CHAR[expected.toLowerCase()];
+      const colIndex = meta ? meta.colIndex : 4;
+      const fingerName = meta ? (FINGER_COLORS[meta.finger]?.label || 'Dedo') : 'Dedo';
+
+      this.gameState.zenWpm = result.netWpm;
+      this.gameState.zenAccuracy = result.accuracy;
+      this.gameState.zenTimeElapsed = result.elapsedSeconds;
+      this.gameState.zenKeystrokes = this.gameState.totalKeystrokes;
+      this.gameState.zenMistakes = this.gameState.zenErrors;
+      this.gameState.zenCorrect = this.gameState.correctKeystrokes;
+
+      if (result.isCorrect) {
+        this.audioEngine.playKeyChime(colIndex, false);
+        this.debugTester.recordHit({
+          noteId: `zen_${this.gameState.zenCursor}`,
+          char: expected,
+          judgment: 'GREAT',
+          deltaMs: 0,
+          expectedFinger: fingerName,
+          isBiomechanicallyValid: true
+        });
+      } else {
+        this.audioEngine.playSoftMiss();
+        this.debugTester.recordHit({
+          noteId: `zen_${this.gameState.zenCursor}`,
+          char: key,
+          judgment: 'MISS',
+          deltaMs: 0,
+          expectedFinger: fingerName,
+          isBiomechanicallyValid: false
+        });
+      }
+
+      if (this.progressBarFill) {
+        const pct = (this.gameState.zenCursor / zenItem.text.length) * 100;
+        this.progressBarFill.style.width = `${pct}%`;
+      }
+
+      if (result.isTextCompleted) {
+        this.audioEngine.playComboMilestone(50);
+        setTimeout(() => {
+          alert(`🍃 ¡Lectura completada con serenidad!\n\nVelocidad: ${this.gameState.zenWpm} WPM\nPrecisión: ${this.gameState.zenAccuracy}%\nTiempo: ${Math.floor(this.gameState.zenTimeElapsed)} segundos`);
+          this.returnToHome();
+        }, 200);
+      }
+      return;
+    }
+
+    // =========================================================================
+    // MODO 3: AVENTURA RÍTMICA MUSICAL (OSU! LIGHT)
+    // =========================================================================
+    if (!this.gameState.currentTrack || this.audioEngine.getIsPaused()) return;
 
     const masterTime = this.audioEngine.getMasterTime();
     const settings = this.difficultyManager.getSettings();
@@ -326,11 +520,34 @@ class TyponiacGame {
     const settings = this.difficultyManager.getSettings();
 
     // 1. Modo Bot / Autoplay para pruebas automatizadas
-    if (this.debugTester.isBotEnabled && this.gameState.currentTrack) {
-      const botKey = this.debugTester.getBotAction(this.gameState.activeNotes, masterTime);
-      if (botKey) {
-        this.handleKeystroke(botKey, botKey === ' ' ? 'Space' : `Key${botKey.toUpperCase()}`);
+    if (this.debugTester.isBotEnabled) {
+      if (this.gameState.gameMode === 'rhythm' && this.gameState.currentTrack) {
+        const botKey = this.debugTester.getBotAction(this.gameState.activeNotes, masterTime);
+        if (botKey) {
+          this.handleKeystroke(botKey, botKey === ' ' ? 'Space' : `Key${botKey.toUpperCase()}`);
+        }
+      } else if (this.gameState.gameMode === 'progression' && this.gameState.currentProgressionStage) {
+        const botKey = this.debugTester.getBotProgressionAction(
+          this.gameState.currentProgressionStage.practiceSequence,
+          this.gameState.progressionCursor
+        );
+        if (botKey) {
+          this.handleKeystroke(botKey, botKey === ' ' ? 'Space' : `Key${botKey.toUpperCase()}`);
+        }
+      } else if (this.gameState.gameMode === 'zen' && this.gameState.currentZenText) {
+        const botKey = this.debugTester.getBotZenAction(
+          this.gameState.currentZenText.text,
+          this.gameState.zenCursor
+        );
+        if (botKey) {
+          this.handleKeystroke(botKey, botKey === ' ' ? 'Space' : `Key${botKey.toUpperCase()}`);
+        }
       }
+    }
+
+    // Actualizar tiempo transcurrido en modo Zen
+    if (this.gameState.gameMode === 'zen') {
+      this.zenEngine.updateTime(this.gameState);
     }
 
     // 2. Limpiar notas pasadas de tiempo según la tolerancia configurada

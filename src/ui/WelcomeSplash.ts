@@ -4,13 +4,14 @@
  * Incluye accesos directos al Tutorial, Canciones y Calibración de Dificultad.
  */
 
-import { BeatmapData, CURATED_TRACKS } from '../config/songs';
-import { ScoreManager } from '../config/scores';
+import { BeatmapData } from '../config/songs';
 
 export interface SplashActions {
   onStartTutorial: () => void;
   onSelectSong: (track: BeatmapData) => void;
   onOpenSongCatalog: () => void;
+  onOpenProgressionCatalog: () => void;
+  onOpenZenCatalog: () => void;
   onOpenSettings: () => void;
 }
 
@@ -39,92 +40,96 @@ export class WelcomeSplash {
   }
 
   private render(): void {
-    const firstTrack = CURATED_TRACKS[0];
-    const rec = ScoreManager.getRecord(firstTrack.id);
-
     this.overlay.innerHTML = `
       <div class="modal-card splash-card">
         <header class="splash-hero">
-          <div class="hero-badge">✨ EDICIÓN INFANTIL • OSU! LIGHT</div>
+          <div class="hero-badge">✨ EDICIÓN MULTI-MODO • OSU! LIGHT & ZEN</div>
           <h1 class="splash-logo">TYPONIAC</h1>
           <p class="splash-tagline">
-            Mecanografía Rítmica al Tacto para Niños de 5 a 10 Años
+            Mecanografía al Tacto para Niños y Creadores
           </p>
           <p class="splash-subtext">
-            Transforma tus dedos en pequeños bailarines. Aprende a escribir sin mirar el teclado mientras tocas música cristalina al compás.
+            Aprende a escribir con fluidez, sin mirar el teclado y sin estrés sensorial. Elige tu modo de juego favorito:
           </p>
         </header>
 
-        <div class="splash-options">
-          <!-- Opción 1: Tutorial Guiado -->
-          <div class="splash-card-opt opt-tutorial" id="btn-splash-tutorial">
-            <div class="opt-icon">🎓</div>
+        <div class="splash-options splash-three-modes">
+          <!-- Modo 1: Escuela de Teclas (Progresiones no musicales) -->
+          <div class="splash-card-opt opt-progression" id="btn-splash-progression">
+            <div class="opt-icon">⌨️</div>
             <div class="opt-content">
-              <h3>Modo Tutorial: La Casa Base</h3>
-              <p>Aprende paso a paso dónde colocar tus dedos en las teclas F y J sin límite de tiempo.</p>
-              <span class="opt-badge">Recomendado para empezar</span>
+              <h3>Escuela de Teclas</h3>
+              <p>Progresiones paso a paso sin música. De F y J a todas las letras, mayúsculas y números.</p>
+              <span class="opt-badge badge-green">20 Etapas • 5 Niveles Guiados</span>
             </div>
           </div>
 
-          <!-- Opción 2: Primera Canción Nivel 1 -->
-          <div class="splash-card-opt opt-play" id="btn-splash-first-song">
+          <!-- Modo 2: Aventura Rítmica Musical (OSU! Light) -->
+          <div class="splash-card-opt opt-play" id="btn-splash-rhythm">
             <div class="opt-icon">🎵</div>
             <div class="opt-content">
-              <h3>Nivel 1: Subwoofer Lullaby</h3>
-              <p>Música suave de Minecraft a 70 BPM. Curva lenta y guiada para la Hilera Central.</p>
-              ${rec ? `
-                <span class="opt-badge badge-green">⭐ Rango ${rec.bestGrade} • ${rec.bestAccuracy}% (${rec.highScore.toLocaleString()} pts)</span>
-              ` : `
-                <span class="opt-badge badge-green">Fase Cognitiva (5-7 años)</span>
-              `}
+              <h3>Aventura Rítmica</h3>
+              <p>Música cristalina sincronizada con tus pulsaciones. Minecraft, Totoro, Mario y más.</p>
+              <span class="opt-badge badge-blue">Estilo OSU! Light • 6 Canciones</span>
             </div>
           </div>
 
-          <!-- Opción 3: Catálogo Completo -->
-          <div class="splash-card-opt opt-levels" id="btn-splash-all-songs">
-            <div class="opt-icon">📑</div>
+          <!-- Modo 3: Escritura Zen Cosy (Textos y Fábulas) -->
+          <div class="splash-card-opt opt-zen" id="btn-splash-zen">
+            <div class="opt-icon">🍃</div>
             <div class="opt-content">
-              <h3>Elegir Canción y Niveles</h3>
-              <p>Explora pistas de Mario 64, Ghibli Totoro, Viva La Vida, Undertale y Daft Punk.</p>
-              <span class="opt-badge badge-blue">Niveles 1, 2 y 3</span>
+              <h3>Escritura Zen Cosy</h3>
+              <p>Palabras, cuentos del Principito, fábulas y bosques andinos. Escribe en calma evaluando tu velocidad.</p>
+              <span class="opt-badge badge-zen">Cero Estrés • WPM & Precisión</span>
             </div>
           </div>
         </div>
 
         <div class="splash-sub-actions">
-          <button id="btn-splash-settings" class="btn-glass btn-settings-wide">
-            ⚙️ Calibrar Dificultad, Tolerancia Rítmica y Sonido
+          <button id="btn-splash-tutorial" class="btn-glass">
+            🎓 Tutorial Casa Base (F / J)
+          </button>
+          <button id="btn-splash-settings" class="btn-glass">
+            ⚙️ Calibrar Dificultad y Sonido
           </button>
         </div>
 
         <footer class="splash-footer">
-          <span class="footer-tip">💡 <strong>Consejo Neuropedagógico:</strong> Mantén tus dedos relajados sobre la fila central (A-S-D-F y J-K-L-Ñ).</span>
+          <span class="footer-tip">💡 <strong>Consejo Neuropedagógico:</strong> Coloca tus índices en los relieves de F y J para orientar tus manos sin mirar.</span>
         </footer>
       </div>
     `;
 
     // Listeners
+    const btnProg = this.overlay.querySelector('#btn-splash-progression');
+    if (btnProg) {
+      btnProg.addEventListener('click', () => {
+        this.hide();
+        this.actions.onOpenProgressionCatalog();
+      });
+    }
+
+    const btnRhythm = this.overlay.querySelector('#btn-splash-rhythm');
+    if (btnRhythm) {
+      btnRhythm.addEventListener('click', () => {
+        this.hide();
+        this.actions.onOpenSongCatalog();
+      });
+    }
+
+    const btnZen = this.overlay.querySelector('#btn-splash-zen');
+    if (btnZen) {
+      btnZen.addEventListener('click', () => {
+        this.hide();
+        this.actions.onOpenZenCatalog();
+      });
+    }
+
     const btnTut = this.overlay.querySelector('#btn-splash-tutorial');
     if (btnTut) {
       btnTut.addEventListener('click', () => {
         this.hide();
         this.actions.onStartTutorial();
-      });
-    }
-
-    const btnPlay = this.overlay.querySelector('#btn-splash-first-song');
-    if (btnPlay) {
-      btnPlay.addEventListener('click', () => {
-        this.hide();
-        this.actions.onSelectSong(firstTrack);
-      });
-    }
-
-    const btnAll = this.overlay.querySelector('#btn-splash-all-songs');
-    if (btnAll) {
-      btnAll.addEventListener('click', () => {
-        this.hide();
-        this.actions.onOpenSongCatalog();
       });
     }
 

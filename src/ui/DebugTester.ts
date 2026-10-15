@@ -29,7 +29,9 @@ export class DebugTester {
   private elErrors!: HTMLElement;
   private elLastHit!: HTMLElement;
   private elLogList!: HTMLElement;
+  private elModeTag!: HTMLElement;
   private btnBot!: HTMLButtonElement;
+  private lastBotStepTime: number = 0;
 
   constructor() {
     this.container = document.createElement('div');
@@ -51,8 +53,12 @@ export class DebugTester {
   private buildStaticDom(): void {
     this.container.innerHTML = `
       <div class="dbg-header">
-        <span class="dbg-title">🛠️ DEBUG TESTER & MONITOR</span>
+        <div class="dbg-header-left">
+          <span class="dbg-title">🛠️ DEBUG MONITOR</span>
+          <span id="dbg-mode-tag" class="dbg-mode-tag">RITMO</span>
+        </div>
         <div class="dbg-controls">
+          <button id="dbg-btn-reset" class="dbg-btn" title="Reiniciar estadísticas">🔄 Reset</button>
           <button id="dbg-btn-bot" class="dbg-btn">🤖 BOT: OFF</button>
           <button id="dbg-btn-hide" class="dbg-btn-icon" title="Ocultar (F3)">✕</button>
         </div>
@@ -104,7 +110,15 @@ export class DebugTester {
     this.elErrors = this.container.querySelector('#dbg-err')!;
     this.elLastHit = this.container.querySelector('#dbg-lasthit')!;
     this.elLogList = this.container.querySelector('#dbg-logs')!;
+    this.elModeTag = this.container.querySelector('#dbg-mode-tag')!;
     this.btnBot = this.container.querySelector('#dbg-btn-bot')!;
+
+    const btnReset = this.container.querySelector('#dbg-btn-reset');
+    if (btnReset) {
+      btnReset.addEventListener('click', () => {
+        this.resetLogsAndStats();
+      });
+    }
 
     this.btnBot.addEventListener('click', () => {
       if (!this.isBotEnabled) {
@@ -122,6 +136,13 @@ export class DebugTester {
     if (btnHide) {
       btnHide.addEventListener('click', () => this.toggleVisibility());
     }
+  }
+
+  public resetLogsAndStats(): void {
+    this.logEntries = [];
+    this.lastHit = null;
+    this.elLogList.innerHTML = '';
+    this.elLastHit.innerHTML = 'Esperando tecla...';
   }
 
   private updateBotButtonState(): void {
@@ -186,17 +207,38 @@ export class DebugTester {
 
     if (!this.isVisible) return;
 
-    const masterTime = audioEngine.getMasterTime();
-    const stdDev = Math.round(rhythmEngine.getLatencyStdDev());
-    const grossWpm = gameState.getGrossWpm();
-    const netWpm = gameState.getNetWpm();
-    const accuracy = gameState.getAccuracy();
+    // Actualizar Tag de Modo
+    if (this.elModeTag) {
+      this.elModeTag.textContent = gameState.gameMode.toUpperCase();
+      this.elModeTag.className = `dbg-mode-tag tag-${gameState.gameMode}`;
+    }
 
-    this.elClock.textContent = `${masterTime.toFixed(3)}s`;
-    this.elWpm.textContent = `${netWpm} / ${grossWpm}`;
-    this.elAccuracy.textContent = `${accuracy}%`;
-    this.elStdDev.textContent = `${stdDev} ms`;
-    this.elErrors.textContent = `${gameState.uniqueErrors} / ${gameState.totalKeystrokes}`;
+    if (gameState.gameMode === 'rhythm') {
+      const masterTime = audioEngine.getMasterTime();
+      const stdDev = Math.round(rhythmEngine.getLatencyStdDev());
+      const grossWpm = gameState.getGrossWpm();
+      const netWpm = gameState.getNetWpm();
+      const accuracy = gameState.getAccuracy();
+
+      this.elClock.textContent = `${masterTime.toFixed(3)}s`;
+      this.elWpm.textContent = `${netWpm} / ${grossWpm}`;
+      this.elAccuracy.textContent = `${accuracy}%`;
+      this.elStdDev.textContent = `${stdDev} ms`;
+      this.elErrors.textContent = `${gameState.uniqueErrors} / ${gameState.totalKeystrokes}`;
+    } else if (gameState.gameMode === 'progression') {
+      this.elClock.textContent = 'En vivo';
+      this.elWpm.textContent = '-';
+      this.elAccuracy.textContent = `${gameState.progressionAccuracy}%`;
+      this.elStdDev.textContent = `${gameState.progressionJitter} ms`;
+      const total = gameState.progressionCorrect + gameState.progressionMistakes;
+      this.elErrors.textContent = `${gameState.progressionMistakes} / ${total}`;
+    } else if (gameState.gameMode === 'zen') {
+      this.elClock.textContent = `${Math.floor(gameState.zenTimeElapsed)}s`;
+      this.elWpm.textContent = `${gameState.zenWpm} WPM`;
+      this.elAccuracy.textContent = `${gameState.zenAccuracy}%`;
+      this.elStdDev.textContent = 'Zen';
+      this.elErrors.textContent = `${gameState.zenMistakes} / ${gameState.zenKeystrokes}`;
+    }
 
     if (this.lastHit) {
       this.elLastHit.innerHTML = `
@@ -222,6 +264,34 @@ export class DebugTester {
           }
         }
       }
+    }
+    return null;
+  }
+
+  public getBotProgressionAction(sequence: string, cursor: number): string | null {
+    if (!this.isBotEnabled || cursor >= sequence.length) return null;
+    const now = performance.now();
+    const interval = this.botAccuracyMode === 'perfect' ? 180 : 320 + Math.random() * 80;
+    if (now - this.lastBotStepTime > interval) {
+      this.lastBotStepTime = now;
+      if (this.botAccuracyMode === 'humanized' && Math.random() < 0.06) {
+        return 'x';
+      }
+      return sequence[cursor];
+    }
+    return null;
+  }
+
+  public getBotZenAction(text: string, cursor: number): string | null {
+    if (!this.isBotEnabled || cursor >= text.length) return null;
+    const now = performance.now();
+    const interval = this.botAccuracyMode === 'perfect' ? 140 : 250 + Math.random() * 90;
+    if (now - this.lastBotStepTime > interval) {
+      this.lastBotStepTime = now;
+      if (this.botAccuracyMode === 'humanized' && Math.random() < 0.04) {
+        return 'e';
+      }
+      return text[cursor];
     }
     return null;
   }
