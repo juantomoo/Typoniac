@@ -101,13 +101,17 @@ class TyponiacGame {
 
     this.inGamePauseModal = new InGamePauseModal({
       onResume: () => {
-        if (this.gameState.currentTrack) {
+        if (this.gameState.gameMode === 'rhythm' && this.gameState.currentTrack) {
           this.audioEngine.resume(this.gameState.currentTrack.bpm);
         }
       },
       onRestart: () => {
-        if (this.gameState.currentTrack) {
+        if (this.gameState.gameMode === 'rhythm' && this.gameState.currentTrack) {
           this.loadAndStartTrack(this.gameState.currentTrack);
+        } else if (this.gameState.gameMode === 'progression' && this.gameState.currentProgressionStage) {
+          this.loadAndStartProgression(this.gameState.currentProgressionStage);
+        } else if (this.gameState.gameMode === 'zen' && this.gameState.currentZenText) {
+          this.loadAndStartZen(this.gameState.currentZenText);
         }
       },
       onOpenSettings: () => {
@@ -121,6 +125,8 @@ class TyponiacGame {
     this.hud = new HUD({
       onSelectFadeMode: (mode: FadeMode) => this.gameState.setFadeMode(mode),
       onOpenSongSelect: () => this.songSelect.show(),
+      onOpenProgressionSelect: () => this.progressionModal.show(),
+      onOpenZenSelect: () => this.zenModal.show(),
       onReturnToHome: () => this.returnToHome(),
       onOpenSettings: () => this.settingsModal.show(),
       onPauseGame: () => this.togglePause()
@@ -273,16 +279,22 @@ class TyponiacGame {
   }
 
   public togglePause(): void {
-    if (this.gameState.gameMode !== 'rhythm') {
-      this.returnToHome();
-      return;
-    }
-    if (!this.gameState.currentTrack || this.isSongCompleted) return;
-    if (this.audioEngine.getIsPaused()) {
+    const isPlaying =
+      (this.gameState.gameMode === 'rhythm' && this.gameState.currentTrack !== null && !this.isSongCompleted) ||
+      (this.gameState.gameMode === 'progression' && this.gameState.currentProgressionStage !== null) ||
+      (this.gameState.gameMode === 'zen' && this.gameState.currentZenText !== null);
+
+    if (!isPlaying) return;
+
+    if (this.inGamePauseModal.isOpen()) {
       this.inGamePauseModal.hide();
-      this.audioEngine.resume(this.gameState.currentTrack.bpm);
+      if (this.gameState.gameMode === 'rhythm' && this.gameState.currentTrack) {
+        this.audioEngine.resume(this.gameState.currentTrack.bpm);
+      }
     } else {
-      this.audioEngine.pause();
+      if (this.gameState.gameMode === 'rhythm') {
+        this.audioEngine.pause();
+      }
       this.inGamePauseModal.show(this.gameState.currentTrack, this.gameState);
     }
   }
@@ -292,21 +304,64 @@ class TyponiacGame {
       this.renderer.handleResize();
     });
 
+    const IGNORED_KEYS = new Set([
+      'Shift', 'Control', 'Alt', 'AltGraph', 'Meta', 'CapsLock',
+      'Tab', 'Dead', 'ContextMenu',
+      'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+      'Home', 'End', 'PageUp', 'PageDown', 'Insert',
+      'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+      'NumLock', 'ScrollLock', 'Pause', 'AudioVolumeMute', 'AudioVolumeDown', 'AudioVolumeUp'
+    ]);
+
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
         e.preventDefault();
       }
+
       if (e.key === 'Escape') {
         e.preventDefault();
-        if (this.gameState.gameMode === 'rhythm' && this.gameState.currentTrack && !this.isSongCompleted) {
+        const isPlaying =
+          (this.gameState.gameMode === 'rhythm' && this.gameState.currentTrack !== null && !this.isSongCompleted) ||
+          (this.gameState.gameMode === 'progression' && this.gameState.currentProgressionStage !== null) ||
+          (this.gameState.gameMode === 'zen' && this.gameState.currentZenText !== null);
+
+        if (isPlaying) {
           this.togglePause();
-        } else if (this.gameState.gameMode !== 'rhythm' && (this.gameState.currentProgressionStage || this.gameState.currentZenText)) {
-          this.returnToHome();
         } else {
           this.settingsModal.show();
         }
         return;
       }
+
+      if (this.inGamePauseModal.isOpen()) {
+        return;
+      }
+
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        if (this.gameState.gameMode === 'zen') {
+          if (this.zenEngine.handleBackspace(this.gameState)) {
+            if (this.progressBarFill && this.gameState.currentZenText) {
+              const pct = (this.gameState.zenCursor / this.gameState.currentZenText.text.length) * 100;
+              this.progressBarFill.style.width = `${pct}%`;
+            }
+          }
+        } else if (this.gameState.gameMode === 'progression') {
+          if (this.gameState.progressionCursor > 0) {
+            this.gameState.progressionCursor--;
+            if (this.progressBarFill && this.gameState.currentProgressionStage) {
+              const pct = (this.gameState.progressionCursor / this.gameState.currentProgressionStage.practiceSequence.length) * 100;
+              this.progressBarFill.style.width = `${pct}%`;
+            }
+          }
+        }
+        return;
+      }
+
+      if (IGNORED_KEYS.has(e.key)) {
+        return;
+      }
+
       if (e.repeat) return;
 
       if (this.isTutorialActive) {
@@ -511,7 +566,7 @@ class TyponiacGame {
     if (!this.isRunning) return;
 
     // Si el juego está en pausa, mantener bucle sin avanzar notas ni tiempo
-    if (this.audioEngine.getIsPaused()) {
+    if (this.inGamePauseModal.isOpen() || this.audioEngine.getIsPaused()) {
       requestAnimationFrame(() => this.gameLoop());
       return;
     }

@@ -20,6 +20,24 @@ export interface ZenStepResult {
   elapsedSeconds: number;
 }
 
+function stripAccents(str: string): string {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+export function charsMatch(input: string, expected: string): boolean {
+  if (input === expected) return true;
+  if (input.toLowerCase() === expected.toLowerCase()) return true;
+  if (stripAccents(input.toLowerCase()) === stripAccents(expected.toLowerCase())) return true;
+  if (expected === ' ' && (input === ' ' || input === 'Space')) return true;
+
+  // Signos tipográficos comunes en literatura
+  if ((expected === '“' || expected === '”' || expected === '"') && (input === '"' || input === '“' || input === '”')) return true;
+  if ((expected === '‘' || expected === '’' || expected === "'") && (input === "'" || input === '‘' || input === '’')) return true;
+  if ((expected === '—' || expected === '–' || expected === '-') && (input === '-' || input === '—' || input === '–')) return true;
+
+  return false;
+}
+
 export class ZenEngine {
   private startTime: number = 0;
   private hasStarted: boolean = false;
@@ -27,6 +45,14 @@ export class ZenEngine {
   public startText(_textItem: ZenTextItem): void {
     this.startTime = 0;
     this.hasStarted = false;
+  }
+
+  public handleBackspace(gameState: GameState): boolean {
+    if (gameState.zenCursor > 0) {
+      gameState.zenCursor--;
+      return true;
+    }
+    return false;
   }
 
   public evaluateInput(
@@ -41,7 +67,7 @@ export class ZenEngine {
     }
 
     const expected = textItem.text[gameState.zenCursor] || '';
-    const isCorrect = key === expected;
+    const isCorrect = charsMatch(key, expected);
 
     gameState.totalKeystrokes++;
 
@@ -51,11 +77,22 @@ export class ZenEngine {
       gameState.combo++;
       if (gameState.combo > gameState.maxCombo) gameState.maxCombo = gameState.combo;
       gameState.score += 50 + (gameState.combo * 2);
+    } else if (key === ' ' && expected !== ' ') {
+      // En modo Zen, si el usuario presiona espacio en medio de una palabra con error,
+      // avanza amablemente hasta la siguiente palabra para no quedar bloqueado
+      const nextSpaceIdx = textItem.text.indexOf(' ', gameState.zenCursor);
+      if (nextSpaceIdx !== -1) {
+        gameState.zenCursor = nextSpaceIdx + 1;
+      } else {
+        gameState.zenCursor = textItem.text.length;
+      }
+      gameState.zenErrors++;
+      gameState.uniqueErrors++;
+      gameState.combo = 0;
     } else {
       gameState.zenErrors++;
       gameState.uniqueErrors++;
       gameState.combo = 0;
-      // En modo Zen, permitimos avanzar si el usuario presiona espacio o corregir
     }
 
     const isTextCompleted = gameState.zenCursor >= textItem.text.length;
